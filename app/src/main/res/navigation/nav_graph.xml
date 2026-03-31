@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/signInFragment">
+
+    <!-- Auth -->
+    <fragment
+        android:id="@+id/signInFragment"
+        android:name="edu.utap.demoproject_mrl.auth.SignInFragment"
+        android:label="Sign In">
+        <action
+            android:id="@+id/action_signIn_to_home"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_signIn_to_register"
+            app:destination="@id/registerFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/registerFragment"
+        android:name="edu.utap.demoproject_mrl.auth.RegisterFragment"
+        android:label="Register">
+        <action
+            android:id="@+id/action_register_to_signIn"
+            app:destination="@id/signInFragment" />
+    </fragment>
+
+    <!-- Home -->
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="edu.utap.demoproject_mrl.home.HomeFragment"
+        android:label="Home">
+        <action
+            android:id="@+id/action_home_to_tasks"
+            app:destination="@id/tasksFragment" />
+        <action
+            android:id="@+id/action_home_to_shared"
+            app:destination="@id/sharedTasksFragment" />
+        <action
+            android:id="@+id/action_home_to_fitness"
+            app:destination="@id/fitnessFragment" />
+        <action
+            android:id="@+id/action_home_to_photos"
+            app:destination="@id/photosFragment" />
+        <action
+            android:id="@+id/action_home_to_settings"
+            app:destination="@id/settingsFragment" />
+    </fragment>
+
+    <!-- Daily Routine -->
+    <fragment
+        android:id="@+id/tasksFragment"
+        android:name="edu.utap.demoproject_mrl.tasks.TasksFragment"
+        android:label="Daily Routine">
+        <action
+            android:id="@+id/action_tasks_to_home"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+    <!-- Shared Tasks -->
+    <fragment
+        android:id="@+id/sharedTasksFragment"
+        android:name="edu.utap.demoproject_mrl.shared.SharedTasksFragment"
+        android:label="Shared Tasks">
+        <action
+            android:id="@+id/action_shared_to_home"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+    <!-- Fitness -->
+    <fragment
+        android:id="@+id/fitnessFragment"
+        android:name="edu.utap.demoproject_mrl.fitness.FitnessFragment"
+        android:label="Fitness">
+        <action
+            android:id="@+id/action_fitness_to_photos"
+            app:destination="@id/photosFragment" />
+        <action
+            android:id="@+id/action_fitness_to_home"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+    <!-- Photos -->
+    <fragment
+        android:id="@+id/photosFragment"
+        android:name="edu.utap.demoproject_mrl.photos.PhotosFragment"
+        android:label="Photo Gallery">
+        <action
+            android:id="@+id/action_photos_to_home"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_photos_to_fitness"
+            app:destination="@id/fitnessFragment" />
+    </fragment>
+
+    <!-- Settings -->
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="edu.utap.demoproject_mrl.settings.SettingsFragment"
+        android:label="Settings">
+        <action
+            android:id="@+id/action_settings_to_home"
+            app:destination="@id/homeFragment" />
+        <action
+            android:id="@+id/action_settings_to_signIn"
+            app:destination="@id/signInFragment" />
+    </fragment>
+
+</navigation>

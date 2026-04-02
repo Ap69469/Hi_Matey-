@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "279164029584",
+    "project_id": "himateydemo",
+    "storage_bucket": "himateydemo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279164029584:android:f4498dd7ce1e2be50b6615",
+        "android_client_info": {
+          "package_name": "edu.utap.demoproject_mrl"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC381zm8sS8JyCQgEHqAdGq2KF0wvjFJyw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

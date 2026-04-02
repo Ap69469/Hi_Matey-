@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Settings"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Profile Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#F3F3F3"
+        android:padding="16dp"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:id="@+id/tvUserEmail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="user@example.com"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+
+        <TextView
+            android:id="@+id/tvJoinDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Joined: March 2026"
+            android:textSize="12sp"
+            android:textColor="#888888"/>
+
+    </LinearLayout>
+
+    <!-- Preferences -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Preferences"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Theme: Light/Dark"
+            android:textSize="14sp"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchTheme"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+
+    </LinearLayout>
+
+    <!-- Partner Status -->
+    <TextView
+        android:id="@+id/tvPartnerStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No active partner"
+        android:textSize="14sp"
+        android:textColor="#888888"
+        android:layout_marginBottom="12dp"/>
+
+    <!-- Invite User -->
+    <EditText
+        android:id="@+id/etPartnerEmail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Partner's email address"
+        android:inputType="textEmailAddress"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnInviteUser"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Invite User"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Sign Out -->
+    <Button
+        android:id="@+id/btnSignOut"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Sign Out"
+        android:backgroundTint="#F44336"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btnBackSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="&lt; Home"
+        android:backgroundTint="#888888"/>
+
+</LinearLayout>

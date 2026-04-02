@@ -11,11 +11,13 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import edu.utap.demoproject_mrl.R
 
 class RegisterFragment : Fragment() {
 
     private lateinit var auth: FirebaseAuth
+    private lateinit var db: FirebaseFirestore
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -28,6 +30,7 @@ class RegisterFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         auth = FirebaseAuth.getInstance()
+        db = FirebaseFirestore.getInstance()
 
         val etEmail = view.findViewById<EditText>(R.id.etEmail)
         val etPassword = view.findViewById<EditText>(R.id.etPassword)
@@ -56,12 +59,32 @@ class RegisterFragment : Fragment() {
             }
 
             auth.createUserWithEmailAndPassword(email, password)
-                .addOnSuccessListener {
-                    Toast.makeText(requireContext(), "Account created!", Toast.LENGTH_SHORT).show()
-                    findNavController().navigate(R.id.action_register_to_signIn)
+                .addOnSuccessListener { result ->
+                    val uid = result.user?.uid ?: return@addOnSuccessListener
+
+                    // Save user profile to Firestore
+                    val userProfile = hashMapOf(
+                        "email" to email,
+                        "createdAt" to System.currentTimeMillis()
+                    )
+
+                    db.collection("users").document(uid)
+                        .set(userProfile)
+                        .addOnSuccessListener {
+                            Toast.makeText(requireContext(),
+                                "Account created!", Toast.LENGTH_SHORT).show()
+                            findNavController().navigate(R.id.action_register_to_signIn)
+                        }
+                        .addOnFailureListener {
+                            Toast.makeText(requireContext(),
+                                "Profile save failed: ${it.message}",
+                                Toast.LENGTH_SHORT).show()
+                        }
                 }
                 .addOnFailureListener {
-                    Toast.makeText(requireContext(), "Registration failed: ${it.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(),
+                        "Registration failed: ${it.message}",
+                        Toast.LENGTH_SHORT).show()
                 }
         }
 

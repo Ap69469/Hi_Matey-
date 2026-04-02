@@ -1,5 +1,6 @@
 package edu.utap.demoproject_mrl.tasks
 
+import android.app.TimePickerDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -12,13 +13,21 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.viewmodel.SharedViewModel
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 class TasksFragment : Fragment() {
 
     private val viewModel: SharedViewModel by activityViewModels()
     private lateinit var adapter: TaskAdapter
+    private var selectedReminderTime: String = ""
+    private var selectedHour: Int = -1
+    private var selectedMinute: Int = -1
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -30,34 +39,65 @@ class TasksFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Reset tasks if it's a new day
+        // Reset tasks if new day
         viewModel.resetTasksIfNewDay()
 
         // Set up RecyclerView
         adapter = TaskAdapter(
             onToggle = { task -> viewModel.toggleTask(task) },
-            onDelete = { task -> viewModel.deleteTask(task) }
+            onDelete = { task -> viewModel.deleteTask(task) },
+            onSetReminder = { task, hour, minute ->
+                val reminderTime = String.format("%02d:%02d", hour, minute)
+                viewModel.updateTaskReminder(task, reminderTime)
+                scheduleReminder(task.title, hour, minute)
+                Toast.makeText(requireContext(),
+                    "Reminder set for ${task.title} at $reminderTime ⏰",
+                    Toast.LENGTH_SHORT).show()
+            }
         )
 
         val rvTasks = view.findViewById<RecyclerView>(R.id.rvTasks)
         rvTasks.layoutManager = LinearLayoutManager(requireContext())
         rvTasks.adapter = adapter
 
-        // Observe tasks from Room DB
+        // Observe tasks
         viewModel.allTasks.observe(viewLifecycleOwner) { tasks ->
             adapter.submitList(tasks)
         }
 
-        // Add task button
         val etNewTask = view.findViewById<EditText>(R.id.etNewTask)
+
+        // Long press to pick reminder time
+        etNewTask.setOnLongClickListener {
+            showTimePicker()
+            true
+        }
+
+        // Add task button
         view.findViewById<Button>(R.id.btnAddTask).setOnClickListener {
             val title = etNewTask.text.toString().trim()
             if (title.isEmpty()) {
                 Toast.makeText(requireContext(), "Please enter a task", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            viewModel.addTask(title)
+
+            viewModel.addTask(title, selectedReminderTime)
+
+            // Schedule reminder if time was set
+            if (selectedHour >= 0 && selectedMinute >= 0) {
+                scheduleReminder(title, selectedHour, selectedMinute)
+                Toast.makeText(requireContext(),
+                    "Task added with reminder at $selectedReminderTime ⏰",
+                    Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "Task added!", Toast.LENGTH_SHORT).show()
+            }
+
+            // Reset fields
             etNewTask.text.clear()
+            selectedReminderTime = ""
+            selectedHour = -1
+            selectedMinute = -1
         }
 
         // Back button
@@ -65,4 +105,50 @@ class TasksFragment : Fragment() {
             findNavController().navigate(R.id.action_tasks_to_home)
         }
     }
+
+    private fun showTimePicker() {
+        val calendar = Calendar.getInstance()
+        TimePickerDialog(
+            requireContext(),
+            { _, hour, minute ->
+                selectedHour = hour
+                selectedMinute = minute
+                selectedReminderTime = String.format("%02d:%02d", hour, minute)
+                Toast.makeText(requireContext(),
+                    "Reminder set for $selectedReminderTime ⏰",
+                    Toast.LENGTH_SHORT).show()
+            },
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true
+        ).show()
+    }
+    private fun scheduleReminder(title: String, hour: Int, minute: Int) {
+        val now = Calendar.getInstance()
+        val reminderTime = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+        }
+
+        // If time already passed today, schedule for tomorrow
+        if (reminderTime.before(now)) {
+            reminderTime.add(Calendar.DAY_OF_MONTH, 1)
+        }
+
+        val delay = reminderTime.timeInMillis - now.timeInMillis
+
+        val data = Data.Builder()
+            .putString("task_title", title)
+            .build()
+
+        val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
+            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
+            .setInputData(data)
+            .build()
+
+        WorkManager.getInstance(requireContext()).enqueue(reminderRequest)
+    }
+
+
 }

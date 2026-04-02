@@ -42,7 +42,11 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
             taskDao.resetTasksForNewDay(getTodayDate())
         }
     }
-
+    fun updateTaskReminder(task: Task, reminderTime: String) {
+        viewModelScope.launch {
+            taskDao.updateTask(task.copy(reminderTime = reminderTime))
+        }
+    }
     private fun getTodayDate(): String {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         return sdf.format(Date())

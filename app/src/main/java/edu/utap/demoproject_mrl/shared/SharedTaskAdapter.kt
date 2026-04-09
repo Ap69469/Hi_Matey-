@@ -1,4 +1,60 @@
 package edu.utap.demoproject_mrl.shared
 
-class SharedTaskAdapter {
+import android.graphics.Paint
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.CheckBox
+import android.widget.ImageButton
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import edu.utap.demoproject_mrl.R
+import edu.utap.demoproject_mrl.model.SharedTask
+
+class SharedTaskAdapter(
+    private val currentUserEmail: String,
+    private val onToggle: (SharedTask) -> Unit,
+    private val onDelete: (SharedTask) -> Unit
+) : RecyclerView.Adapter<SharedTaskAdapter.ViewHolder>() {
+
+    private var tasks = listOf<SharedTask>()
+
+    fun submitList(newTasks: List<SharedTask>) {
+        tasks = newTasks
+        notifyDataSetChanged()
+    }
+
+    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val cbTask: CheckBox = view.findViewById(R.id.cbSharedTask)
+        val tvTitle: TextView = view.findViewById(R.id.tvSharedTaskTitle)
+        val tvAssigned: TextView = view.findViewById(R.id.tvAssignedTo)
+        val btnDelete: ImageButton = view.findViewById(R.id.btnDeleteShared)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_shared_task, parent, false)
+        return ViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val task = tasks[position]
+        holder.tvTitle.text = task.title
+        holder.tvAssigned.text = "→ ${task.assignedTo}"
+        holder.cbTask.isChecked = task.isCompleted
+
+        // Strike through when completed
+        if (task.isCompleted) {
+            holder.tvTitle.paintFlags =
+                holder.tvTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+        } else {
+            holder.tvTitle.paintFlags =
+                holder.tvTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+        }
+
+        holder.cbTask.setOnClickListener { onToggle(task) }
+        holder.btnDelete.setOnClickListener { onDelete(task) }
+    }
+
+    override fun getItemCount() = tasks.size
 }

@@ -5,11 +5,10 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:padding="12dp"
-    android:gravity="center_vertical"
-    android:background="?android:attr/selectableItemBackground">
+    android:gravity="center_vertical">
 
     <CheckBox
-        android:id="@+id/cbTask"
+        android:id="@+id/cbSharedTask"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="12dp"/>
@@ -21,13 +20,13 @@
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/tvTaskTitle"
+            android:id="@+id/tvSharedTaskTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="16sp"/>
 
         <TextView
-            android:id="@+id/tvReminderTime"
+            android:id="@+id/tvAssignedTo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="12sp"
@@ -35,16 +34,8 @@
 
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnSetReminder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="⏰ Remind"
-        android:textSize="11sp"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:layout_marginEnd="4dp"/>
     <ImageButton
-        android:id="@+id/btnDelete"
+        android:id="@+id/btnDeleteShared"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_menu_delete"

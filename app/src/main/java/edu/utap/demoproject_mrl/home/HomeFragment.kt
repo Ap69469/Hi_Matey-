@@ -27,6 +27,22 @@ class HomeFragment : Fragment() {
         val user = FirebaseAuth.getInstance().currentUser
         val tvProgress = view.findViewById<TextView>(R.id.tvProgress)
         tvProgress.text = "Welcome, ${user?.email ?: "User"}!"
+        // Daily affirmations
+        val affirmations = listOf(
+            "\"Arise, awake and stop not till the goal is reached.\" - Swami Vivekananda",
+            "\"It does not matter how slowly you go as long as you do not stop.\" - Confucius",
+            "\"The secret of getting ahead is getting started.\" - Mark Twain",
+            "\"Don't watch the clock; do what it does. Keep going.\" - Sam Levenson",
+            "\"Success is the sum of small efforts repeated day in and day out.\" - Robert Collier",
+            "\"Believe you can and you're halfway there.\" - Theodore Roosevelt",
+            "\"The harder you work, the luckier you get.\" - Gary Player",
+            "\"Push yourself because no one else is going to do it for you.\"",
+            "\"Great things never come from comfort zones.\"",
+            "\"Dream it. Wish it. Do it.\""
+        )
+
+        val randomAffirmation = affirmations.random()
+        view.findViewById<TextView>(R.id.tvAffirmation).text = randomAffirmation
 
         // Navigation buttons
         view.findViewById<Button>(R.id.btnDailyRoutine).setOnClickListener {

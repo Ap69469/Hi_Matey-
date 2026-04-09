@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.model.Task
 import java.util.Calendar
+import android.widget.Button
 
 class TaskAdapter(
     private val onToggle: (Task) -> Unit,
@@ -31,7 +32,7 @@ class TaskAdapter(
         val tvTitle: TextView = view.findViewById(R.id.tvTaskTitle)
         val tvReminder: TextView = view.findViewById(R.id.tvReminderTime)
         val btnDelete: ImageButton = view.findViewById(R.id.btnDelete)
-        val btnSetReminder: ImageButton = view.findViewById(R.id.btnSetReminder)
+        val btnSetReminder: Button = view.findViewById(R.id.btnSetReminder)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {

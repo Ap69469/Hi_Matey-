@@ -12,8 +12,7 @@ import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.model.SharedTask
 
 class SharedTaskAdapter(
-    private val currentUserEmail: String,
-    private val onToggle: (SharedTask) -> Unit,
+    private val onToggle: (SharedTask) -> Unit,  // ✅ Added back
     private val onDelete: (SharedTask) -> Unit
 ) : RecyclerView.Adapter<SharedTaskAdapter.ViewHolder>() {
 
@@ -25,9 +24,9 @@ class SharedTaskAdapter(
     }
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val cbTask: CheckBox = view.findViewById(R.id.cbSharedTask)
-        val tvTitle: TextView = view.findViewById(R.id.tvSharedTaskTitle)
-        val tvAssigned: TextView = view.findViewById(R.id.tvAssignedTo)
+        val cbTask: CheckBox       = view.findViewById(R.id.cbSharedTask)  // ✅
+        val tvTitle: TextView      = view.findViewById(R.id.tvSharedTaskTitle)
+        val tvAssigned: TextView   = view.findViewById(R.id.tvAssignedTo)
         val btnDelete: ImageButton = view.findViewById(R.id.btnDeleteShared)
     }
 
@@ -39,21 +38,31 @@ class SharedTaskAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val task = tasks[position]
-        holder.tvTitle.text = task.title
+
+        holder.tvTitle.text    = task.title
         holder.tvAssigned.text = "→ ${task.assignedTo}"
+
+        // ✅ Clear listener BEFORE setting state to prevent feedback loop
+        holder.cbTask.setOnCheckedChangeListener(null)
         holder.cbTask.isChecked = task.isCompleted
 
-        // Strike through when completed
-        if (task.isCompleted) {
-            holder.tvTitle.paintFlags =
-                holder.tvTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+        // ✅ Strikethrough reflects Firestore state
+        holder.tvTitle.paintFlags = if (task.isCompleted) {
+            holder.tvTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
         } else {
-            holder.tvTitle.paintFlags =
-                holder.tvTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
+            holder.tvTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
         }
 
-        holder.cbTask.setOnClickListener { onToggle(task) }
-        holder.btnDelete.setOnClickListener { onDelete(task) }
+        // ✅ Set listener AFTER state, use adapterPosition to avoid stale task
+        holder.cbTask.setOnCheckedChangeListener { _, _ ->
+            val currentTask = tasks[holder.adapterPosition]
+            onToggle(currentTask)
+        }
+
+        holder.btnDelete.setOnClickListener {
+            val currentTask = tasks[holder.adapterPosition]
+            onDelete(currentTask)
+        }
     }
 
     override fun getItemCount() = tasks.size

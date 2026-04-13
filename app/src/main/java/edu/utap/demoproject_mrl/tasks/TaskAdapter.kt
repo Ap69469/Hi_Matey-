@@ -5,6 +5,7 @@ import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.CheckBox
 import android.widget.ImageButton
 import android.widget.TextView
@@ -12,7 +13,6 @@ import androidx.recyclerview.widget.RecyclerView
 import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.model.Task
 import java.util.Calendar
-import android.widget.Button
 
 class TaskAdapter(
     private val onToggle: (Task) -> Unit,
@@ -31,6 +31,7 @@ class TaskAdapter(
         val cbTask: CheckBox = view.findViewById(R.id.cbTask)
         val tvTitle: TextView = view.findViewById(R.id.tvTaskTitle)
         val tvReminder: TextView = view.findViewById(R.id.tvReminderTime)
+        val tvStreak: TextView = view.findViewById(R.id.tvStreak)
         val btnDelete: ImageButton = view.findViewById(R.id.btnDelete)
         val btnSetReminder: Button = view.findViewById(R.id.btnSetReminder)
     }
@@ -59,21 +60,31 @@ class TaskAdapter(
                 holder.tvTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
         }
 
+        // Show streak
+        if (task.streak > 0) {
+            holder.tvStreak.text = "🔥 ${task.streak} day streak!"
+            holder.tvStreak.visibility = View.VISIBLE
+        } else {
+            holder.tvStreak.visibility = View.GONE
+        }
+
         holder.cbTask.setOnClickListener { onToggle(task) }
         holder.btnDelete.setOnClickListener { onDelete(task) }
 
         // Set reminder for THIS specific task
         holder.btnSetReminder.setOnClickListener {
             val calendar = Calendar.getInstance()
-            TimePickerDialog(
+            val dialog = TimePickerDialog(
                 holder.itemView.context,
+                android.R.style.Theme_Holo_Light_Dialog,
                 { _, hour, minute ->
                     onSetReminder(task, hour, minute)
                 },
                 calendar.get(Calendar.HOUR_OF_DAY),
                 calendar.get(Calendar.MINUTE),
                 true
-            ).show()
+            )
+            dialog.show()
         }
     }
 

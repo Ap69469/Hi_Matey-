@@ -8,7 +8,8 @@ data class Task(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val title: String = "",
-    val reminderTime: String = "",   // e.g. "09:00 AM"
+    val reminderTime: String = "",
     val isCompleted: Boolean = false,
-    val lastCompletedDate: String = "" // e.g. "2026-03-30" for daily reset
+    val lastCompletedDate: String = "",
+    val streak: Int = 0
 )

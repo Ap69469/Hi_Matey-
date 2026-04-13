@@ -18,6 +18,12 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import edu.utap.demoproject_mrl.R
+import edu.utap.demoproject_mrl.database.AppDatabase
+import edu.utap.demoproject_mrl.model.WorkoutSession
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -25,12 +31,12 @@ import java.util.*
 class FitnessFragment : Fragment() {
 
     private lateinit var tvTimer: TextView
+    private lateinit var tvWeekCalendar: TextView
     private var handler = Handler(Looper.getMainLooper())
     private var startTime: Long = 0L
     private var isRunning = false
     private var photoUri: Uri? = null
 
-    // Timer runnable — UI display layer
     private val timerRunnable = object : Runnable {
         override fun run() {
             val elapsed = System.currentTimeMillis() - startTime
@@ -42,18 +48,15 @@ class FitnessFragment : Fragment() {
         }
     }
 
-    // Camera launcher
     private val takePicture = registerForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && photoUri != null) {
             Toast.makeText(requireContext(), "Photo saved!", Toast.LENGTH_SHORT).show()
-            // Auto-navigate to Photos Gallery
             findNavController().navigate(R.id.action_fitness_to_photos)
         }
     }
 
-    // Permission launcher
     private val requestPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -72,30 +75,50 @@ class FitnessFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         tvTimer = view.findViewById(R.id.tvTimer)
+        tvWeekCalendar = view.findViewById(R.id.tvWeekCalendar)
 
-        // Start button — saves Unix timestamp (core logic)
+        // Load weekly calendar
+        loadWeeklyCalendar()
+
+        // Start button
         view.findViewById<Button>(R.id.btnStart).setOnClickListener {
             if (!isRunning) {
-                startTime = System.currentTimeMillis() // core timer logic
+                startTime = System.currentTimeMillis()
                 isRunning = true
-                handler.post(timerRunnable) // UI display layer
-                Toast.makeText(requireContext(), "Workout started!", Toast.LENGTH_SHORT).show()
+                handler.post(timerRunnable)
+                Toast.makeText(requireContext(), "Workout started! 💪", Toast.LENGTH_SHORT).show()
             }
         }
 
-        // Stop button
+        // Stop button — saves workout to Room DB
         view.findViewById<Button>(R.id.btnStop).setOnClickListener {
             if (isRunning) {
                 isRunning = false
                 handler.removeCallbacks(timerRunnable)
-                val duration = System.currentTimeMillis() - startTime
-                Toast.makeText(requireContext(),
-                    "Workout saved! Duration: ${duration / 1000}s",
-                    Toast.LENGTH_SHORT).show()
+                val durationSeconds = (System.currentTimeMillis() - startTime) / 1000
+
+                // Save workout session
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val session = WorkoutSession(
+                    date = today,
+                    durationSeconds = durationSeconds
+                )
+
+                CoroutineScope(Dispatchers.IO).launch {
+                    AppDatabase.getDatabase(requireContext()).workoutDao().insertWorkout(session)
+                    withContext(Dispatchers.Main) {
+                        val mins = durationSeconds / 60
+                        val secs = durationSeconds % 60
+                        Toast.makeText(requireContext(),
+                            "Workout saved! ${mins}m ${secs}s 🎉",
+                            Toast.LENGTH_SHORT).show()
+                        loadWeeklyCalendar() // refresh calendar
+                    }
+                }
             }
         }
 
-        // Capture photo button
+        // Capture photo
         view.findViewById<Button>(R.id.btnCapturePhoto).setOnClickListener {
             if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -108,6 +131,33 @@ class FitnessFragment : Fragment() {
         // Back button
         view.findViewById<Button>(R.id.btnBackFitness).setOnClickListener {
             findNavController().navigate(R.id.action_fitness_to_home)
+        }
+    }
+
+    private fun loadWeeklyCalendar() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val workoutDates = AppDatabase.getDatabase(requireContext())
+                .workoutDao().getAllWorkoutDates().toSet()
+
+            val calendar = Calendar.getInstance()
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+            // Get this week's Monday
+            calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+
+            val weekDisplay = StringBuilder("This Week:\n")
+            for (i in 0..6) {
+                val dateStr = sdf.format(calendar.time)
+                val dot = if (workoutDates.contains(dateStr)) "🟢" else "⬜"
+                weekDisplay.append("${dayNames[i]} $dot  ")
+                if (i == 3) weekDisplay.append("\n")
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+            }
+
+            withContext(Dispatchers.Main) {
+                tvWeekCalendar.text = weekDisplay.toString()
+            }
         }
     }
 

@@ -32,6 +32,14 @@
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:textColor="#6200EE"/>
+        <TextView
+            android:id="@+id/tvStreak"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="#FF6600"
+            android:textStyle="bold"/>
+
 
     </LinearLayout>
 

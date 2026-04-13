@@ -1,12 +1,18 @@
+
 package edu.utap.demoproject_mrl.model
+
+import com.google.firebase.firestore.PropertyName
 
 data class SharedTask(
     val id: String = "",
     val title: String = "",
-    val assignedTo: String = "",     // user email
-    val assignedToUid: String = "",  // user uid
-    val reminderTime: String = "",   // e.g. "03:00 PM"
-    val isCompleted: Boolean = false,
+    val assignedTo: String = "",
+    val assignedToUid: String = "",
+    val reminderTime: String = "",
     val createdBy: String = "",
-    val partnershipId: String = ""
+    val partnershipId: String = "",
+
+    @get:PropertyName("isCompleted")
+    @set:PropertyName("isCompleted")
+    var isCompleted: Boolean = false
 )

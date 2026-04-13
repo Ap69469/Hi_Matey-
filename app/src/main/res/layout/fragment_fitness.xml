@@ -13,7 +13,7 @@
         android:text="Fitness Tracking"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:layout_marginBottom="32dp"/>
+        android:layout_marginBottom="16dp"/>
 
     <!-- Workout Timer Card -->
     <LinearLayout
@@ -23,7 +23,7 @@
         android:background="#F3F3F3"
         android:padding="24dp"
         android:gravity="center"
-        android:layout_marginBottom="24dp">
+        android:layout_marginBottom="16dp">
 
         <TextView
             android:layout_width="wrap_content"
@@ -67,6 +67,26 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Weekly Calendar Card -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#F3F3F3"
+        android:padding="16dp"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/tvWeekCalendar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="This Week:\nLoading..."
+            android:textSize="14sp"
+            android:fontFamily="monospace"
+            android:textColor="#333333"/>
+
+    </LinearLayout>
+
     <!-- Capture Photo Button -->
     <Button
         android:id="@+id/btnCapturePhoto"
@@ -81,7 +101,7 @@
         android:text="Opens Camera → Goes to Photo Gallery"
         android:textSize="12sp"
         android:textColor="#888888"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="16dp"/>
 
     <Button
         android:id="@+id/btnBackFitness"

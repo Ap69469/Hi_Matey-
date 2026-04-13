@@ -9,6 +9,7 @@ import edu.utap.demoproject_mrl.model.Task
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.Calendar
 
 class SharedViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -24,12 +25,31 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
     fun toggleTask(task: Task) {
         viewModelScope.launch {
             val today = getTodayDate()
+            val yesterday = getYesterdayDate()
+
+            val newStreak = when {
+                // Completing today — increment streak
+                !task.isCompleted && task.lastCompletedDate == yesterday -> task.streak + 1
+                !task.isCompleted && task.lastCompletedDate != today -> 1
+                // Unchecking — decrement streak
+                else -> if (task.streak > 0) task.streak - 1 else 0
+            }
+
             taskDao.updateTask(task.copy(
                 isCompleted = !task.isCompleted,
-                lastCompletedDate = today
+                lastCompletedDate = today,
+                streak = newStreak
             ))
         }
     }
+
+    private fun getYesterdayDate(): String {
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_MONTH, -1)
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return sdf.format(cal.time)
+    }
+
 
     fun deleteTask(task: Task) {
         viewModelScope.launch {

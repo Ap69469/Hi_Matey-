@@ -33,6 +33,14 @@
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:textColor="#888888"/>
+        <TextView
+            android:id="@+id/tvCompletedAt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="#6200EE"
+            android:textStyle="italic"
+            android:visibility="gone"/>
 
     </LinearLayout>
 
@@ -41,6 +49,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_menu_delete"
-        android:background="?android:attr/selectableItemBackgroundBorderless"/>
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Delete task"/>
 
 </LinearLayout>

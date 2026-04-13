@@ -133,8 +133,7 @@ class SharedTasksFragment : Fragment() {
                     tasks.forEach { newTask ->
                         val oldTask = previousTasks.find { it.id == newTask.id }
                         if (newTask.isCompleted &&
-                            oldTask?.isCompleted == false &&
-                            newTask.assignedTo != currentUserEmail
+                            oldTask?.isCompleted == false
                         ) {
                             showTaskClaimedNotification(newTask.assignedTo, newTask.title)
                         }
@@ -150,8 +149,13 @@ class SharedTasksFragment : Fragment() {
     }
 
     private fun toggleSharedTask(task: SharedTask) {
+        val newStatus = !task.isCompleted
+        val updates = mutableMapOf<String, Any>(
+            "isCompleted" to newStatus,
+            "completedAt" to if (newStatus) System.currentTimeMillis() else 0L
+        )
         db.collection("sharedTasks").document(task.id)
-            .update("isCompleted", !task.isCompleted)
+            .update(updates)
             .addOnFailureListener { e ->
                 Toast.makeText(requireContext(),
                     "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()

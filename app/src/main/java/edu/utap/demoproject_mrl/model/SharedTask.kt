@@ -2,6 +2,7 @@
 package edu.utap.demoproject_mrl.model
 
 import com.google.firebase.firestore.PropertyName
+import com.google.firebase.firestore.Exclude
 
 data class SharedTask(
     val id: String = "",
@@ -11,6 +12,8 @@ data class SharedTask(
     val reminderTime: String = "",
     val createdBy: String = "",
     val partnershipId: String = "",
+    val completedAt: Long = 0L,
+    @get:Exclude val completed: Boolean = false,
 
     @get:PropertyName("isCompleted")
     @set:PropertyName("isCompleted")

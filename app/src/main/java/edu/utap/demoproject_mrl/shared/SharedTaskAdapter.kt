@@ -28,6 +28,8 @@ class SharedTaskAdapter(
         val tvTitle: TextView      = view.findViewById(R.id.tvSharedTaskTitle)
         val tvAssigned: TextView   = view.findViewById(R.id.tvAssignedTo)
         val btnDelete: ImageButton = view.findViewById(R.id.btnDeleteShared)
+        val tvCompletedAt: TextView = view.findViewById(R.id.tvCompletedAt)
+
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -52,7 +54,15 @@ class SharedTaskAdapter(
         } else {
             holder.tvTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
         }
-
+        // In onBindViewHolder add:
+        if (task.isCompleted && task.completedAt > 0L) {
+            val time = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+                .format(java.util.Date(task.completedAt))
+            holder.tvCompletedAt.text = "✓ committed at $time"
+            holder.tvCompletedAt.visibility = View.VISIBLE
+        } else {
+            holder.tvCompletedAt.visibility = View.GONE
+        }
         // ✅ Set listener AFTER state, use adapterPosition to avoid stale task
         holder.cbTask.setOnCheckedChangeListener { _, _ ->
             val currentTask = tasks[holder.adapterPosition]

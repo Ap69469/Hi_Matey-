@@ -47,7 +47,10 @@ class SharedTaskAdapter(
         holder.cbTask.isChecked = task.isCompleted
 
         holder.tvTitle.paintFlags =
-            if (task.isCompleted) Paint.STRIKE_THRU_TEXT_FLAG else 0
+            if (task.isCompleted)
+                holder.tvTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+            else
+                holder.tvTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
 
         if (task.isCompleted && task.completedAt > 0L) {
             val time = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())

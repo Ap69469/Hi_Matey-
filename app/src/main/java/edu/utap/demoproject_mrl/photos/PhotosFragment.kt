@@ -1,11 +1,11 @@
 package edu.utap.demoproject_mrl.photos
 
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
@@ -17,9 +17,7 @@ class PhotosFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        return inflater.inflate(R.layout.fragment_photos, container, false)
-    }
+    ): View = inflater.inflate(R.layout.fragment_photos, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -30,7 +28,15 @@ class PhotosFragment : Fragment() {
             ?.sortedByDescending { it.lastModified() }
             ?: emptyList()
 
-        val photoUris = photoFiles.map { Uri.fromFile(it) }
+        // ✅ Fixed — use FileProvider instead of Uri.fromFile
+        // Prevents FileUriExposedException on Android N+
+        val photoUris = photoFiles.map { file ->
+            FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                file
+            )
+        }
 
         val adapter = PhotoAdapter(photoUris)
         view.findViewById<RecyclerView>(R.id.rvPhotos).apply {

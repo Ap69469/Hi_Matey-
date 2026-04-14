@@ -82,8 +82,8 @@ class SharedTasksFragment : Fragment() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
+    override fun onDestroyView() {
+        super.onDestroyView()
         taskListener?.remove()
         taskListener = null
     }

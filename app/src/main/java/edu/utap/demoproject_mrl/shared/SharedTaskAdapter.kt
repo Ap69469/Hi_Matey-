@@ -55,8 +55,10 @@ class SharedTaskAdapter(
         if (task.isCompleted && task.completedAt > 0L) {
             val time = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
                 .format(java.util.Date(task.completedAt))
-            holder.tvCompletedAt.text = "✓ committed at $time"
+            //holder.tvCompletedAt.text = "✓ committed at $time"
             holder.tvCompletedAt.visibility = View.VISIBLE
+            val name = task.assignedTo.substringBefore("@") // gets "amulya" or "partner"
+            holder.tvCompletedAt.text = "✓ $name finished at $time"
         } else {
             holder.tvCompletedAt.visibility = View.GONE
         }

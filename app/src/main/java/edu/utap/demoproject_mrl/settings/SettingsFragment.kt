@@ -8,8 +8,6 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.firebase.auth.FirebaseAuth
@@ -18,118 +16,95 @@ import edu.utap.demoproject_mrl.R
 
 class SettingsFragment : Fragment() {
 
-    private lateinit var auth: FirebaseAuth
     private lateinit var db: FirebaseFirestore
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        return inflater.inflate(R.layout.fragment_settings, container, false)
-    }
+    ): View = inflater.inflate(R.layout.fragment_settings, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        auth = FirebaseAuth.getInstance()
         db = FirebaseFirestore.getInstance()
+        auth = FirebaseAuth.getInstance()
 
         val currentUser = auth.currentUser
-
-        // Show user email
         view.findViewById<TextView>(R.id.tvUserEmail).text =
-            currentUser?.email ?: "user@example.com"
+            currentUser?.email ?: "Not logged in"
 
-        // Check partner status
-        currentUser?.uid?.let { uid ->
-            db.collection("partnerships")
-                .whereArrayContains("members", uid)
-                .whereEqualTo("status", "active")
-                .get()
-                .addOnSuccessListener { docs ->
-                    if (!docs.isEmpty) {
-                        val partnerEmail = docs.documents[0].getString("partnerEmail") ?: "Partner"
-                        view.findViewById<TextView>(R.id.tvPartnerStatus).text =
-                            "✅ Active partner: $partnerEmail"
-                    }
-                }
-        }
-
-        // Theme toggle
-        val switchTheme = view.findViewById<SwitchCompat>(R.id.switchTheme)
-        switchTheme.isChecked =
-            AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
-
-        switchTheme.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-            } else {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-            }
-        }
-
-        // Invite partner
+        // ✅ Correct IDs matching XML
         val etPartnerEmail = view.findViewById<EditText>(R.id.etPartnerEmail)
+
         view.findViewById<Button>(R.id.btnInviteUser).setOnClickListener {
             val partnerEmail = etPartnerEmail.text.toString().trim()
             if (partnerEmail.isEmpty()) {
-                Toast.makeText(requireContext(), "Enter partner's email", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(),
+                    "Enter partner email", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            sendPartnerInvite(partnerEmail, currentUser?.uid ?: "", currentUser?.email ?: "")
+            sendPartnerInvite(partnerEmail)
         }
 
-        // Sign out
         view.findViewById<Button>(R.id.btnSignOut).setOnClickListener {
             auth.signOut()
             findNavController().navigate(R.id.action_settings_to_signIn)
         }
 
-        // Back
         view.findViewById<Button>(R.id.btnBackSettings).setOnClickListener {
             findNavController().navigate(R.id.action_settings_to_home)
         }
     }
 
-    private fun sendPartnerInvite(
-        partnerEmail: String,
-        currentUid: String,
-        currentEmail: String
-    ) {
-        // Find partner's UID by email
-        db.collection("users")
-            .whereEqualTo("email", partnerEmail)
+    private fun sendPartnerInvite(partnerEmail: String) {
+        val currentUser = auth.currentUser ?: return
+        val currentEmail = currentUser.email ?: return
+
+        db.collection("partnerships")
+            .whereArrayContains("memberEmails", currentEmail)
+            .whereEqualTo("status", "active")
             .get()
             .addOnSuccessListener { docs ->
-                if (docs.isEmpty) {
+                if (!docs.isEmpty) {
                     Toast.makeText(requireContext(),
-                        "User not found. Make sure they have an account!",
-                        Toast.LENGTH_LONG).show()
+                        "You already have an active partner!",
+                        Toast.LENGTH_SHORT).show()
                     return@addOnSuccessListener
                 }
 
-                val partnerUid = docs.documents[0].id
+                db.collection("users")
+                    .whereEqualTo("email", partnerEmail)
+                    .get()
+                    .addOnSuccessListener { userDocs ->
+                        if (userDocs.isEmpty) {
+                            Toast.makeText(requireContext(),
+                                "User not found!", Toast.LENGTH_SHORT).show()
+                            return@addOnSuccessListener
+                        }
 
-                // Create partnership document
-                val partnership = hashMapOf(
-                    "members" to listOf(currentUid, partnerUid),
-                    "memberEmails" to listOf(currentEmail, partnerEmail),
-                    "partnerEmail" to partnerEmail,
-                    "status" to "active",
-                    "createdAt" to System.currentTimeMillis()
-                )
+                        val partnerUid = userDocs.documents[0].id
 
-                db.collection("partnerships")
-                    .add(partnership)
-                    .addOnSuccessListener {
-                        Toast.makeText(requireContext(),
-                            "Partnership created with $partnerEmail! 🎉",
-                            Toast.LENGTH_LONG).show()
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(requireContext(),
-                            "Failed: ${it.message}",
-                            Toast.LENGTH_SHORT).show()
+                        val partnership = hashMapOf(
+                            "memberEmails" to listOf(currentEmail, partnerEmail),
+                            "members" to listOf(currentUser.uid, partnerUid),
+                            "partnerEmail" to partnerEmail,
+                            "status" to "active",
+                            "createdAt" to System.currentTimeMillis()
+                        )
+
+                        db.collection("partnerships")
+                            .add(partnership)
+                            .addOnSuccessListener {
+                                Toast.makeText(requireContext(),
+                                    "Partner invited! ✅",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                            .addOnFailureListener { e ->
+                                Toast.makeText(requireContext(),
+                                    "Failed: ${e.message}",
+                                    Toast.LENGTH_SHORT).show()
+                            }
                     }
             }
     }

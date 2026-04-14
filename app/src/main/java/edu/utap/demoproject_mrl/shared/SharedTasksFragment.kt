@@ -27,11 +27,11 @@ class SharedTasksFragment : Fragment() {
     private lateinit var auth: FirebaseAuth
     private lateinit var adapter: SharedTaskAdapter
     private var partnershipId: String = ""
+    private var taskListener: ListenerRegistration? = null
+
+    // ✅ Track previous tasks for notification comparison
     private var previousTasks = listOf<SharedTask>()
     private var isFirstLoad = true
-
-    // ✅ Store listener to properly manage lifecycle
-    private var taskListener: ListenerRegistration? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,13 +41,13 @@ class SharedTasksFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        db   = FirebaseFirestore.getInstance()
+        db = FirebaseFirestore.getInstance()
         auth = FirebaseAuth.getInstance()
 
         val currentUser = auth.currentUser ?: return
 
         adapter = SharedTaskAdapter(
-            onToggle = { task -> toggleSharedTask(task) },  // ✅ wired up
+            onToggle = { task -> toggleSharedTask(task) },
             onDelete = { task -> deleteSharedTask(task) }
         )
 
@@ -56,19 +56,22 @@ class SharedTasksFragment : Fragment() {
             adapter = this@SharedTasksFragment.adapter
         }
 
+        createNotificationChannel()
         loadPartnership(currentUser.uid)
 
-        val etTask   = view.findViewById<EditText>(R.id.etNewSharedTask)
+        val etTask = view.findViewById<EditText>(R.id.etNewSharedTask)
         val etAssign = view.findViewById<EditText>(R.id.etAssignTo)
 
         view.findViewById<Button>(R.id.btnAddSharedTask).setOnClickListener {
-            val title    = etTask.text.toString().trim()
+            val title = etTask.text.toString().trim()
             val assignTo = etAssign.text.toString().trim()
                 .ifEmpty { currentUser.email ?: "" }
+
             if (title.isEmpty()) {
                 Toast.makeText(requireContext(), "Enter a task", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
             addSharedTask(title, assignTo)
             etTask.text.clear()
             etAssign.text.clear()
@@ -79,18 +82,16 @@ class SharedTasksFragment : Fragment() {
         }
     }
 
-    // ✅ Remove listener when off-screen
     override fun onStop() {
         super.onStop()
         taskListener?.remove()
         taskListener = null
     }
 
-    // ✅ Re-attach when returning to screen
     override fun onStart() {
         super.onStart()
         if (partnershipId.isNotEmpty() && taskListener == null) {
-            isFirstLoad = true
+            isFirstLoad = true  // ✅ Reset on return
             listenForSharedTasks()
         }
     }
@@ -114,100 +115,75 @@ class SharedTasksFragment : Fragment() {
     }
 
     private fun listenForSharedTasks() {
-        taskListener?.remove()  // ✅ Clean up before re-registering
+        taskListener?.remove()
 
         taskListener = db.collection("sharedTasks")
             .whereEqualTo("partnershipId", partnershipId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null || snapshot == null) return@addSnapshotListener
 
-                val tasks = snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(SharedTask::class.java)
+                val tasks = snapshot.documents.mapNotNull {
+                    it.toObject(SharedTask::class.java)
                 }
 
-                val currentUserEmail = auth.currentUser?.email ?: ""
-
-                // ✅ Local notification when partner completes a task
-                // (only works while app is open — no Blaze plan)
-                if (!isFirstLoad) {
-                    tasks.forEach { newTask ->
-                        val oldTask = previousTasks.find { it.id == newTask.id }
-                        if (newTask.isCompleted &&
-                            oldTask?.isCompleted == false
-                        ) {
-                            showTaskClaimedNotification(newTask.assignedTo, newTask.title)
+                // ✅ Only fire notifications from server-confirmed snapshots
+                if (!snapshot.metadata.hasPendingWrites()) {
+                    if (!isFirstLoad) {
+                        tasks.forEach { newTask ->
+                            val oldTask = previousTasks.find { it.id == newTask.id }
+                            if (newTask.isCompleted && oldTask?.isCompleted == false) {
+                                showTaskClaimedNotification(newTask.assignedTo, newTask.title)
+                            }
                         }
                     }
+                    isFirstLoad = false
+                    previousTasks = tasks
                 }
 
-                isFirstLoad = false
-                previousTasks = tasks
-
-                // ✅ No runOnUiThread — Firestore already on main thread
-                adapter.submitList(ArrayList(tasks))
+                // ✅ Always update UI
+                adapter.submitList(tasks)
             }
     }
 
+    // ✅ No notification here — fires on Firestore snapshot instead
     private fun toggleSharedTask(task: SharedTask) {
         val newStatus = !task.isCompleted
-        val updates = mutableMapOf<String, Any>(
+        val updates = mapOf(
             "isCompleted" to newStatus,
             "completedAt" to if (newStatus) System.currentTimeMillis() else 0L
         )
-        db.collection("sharedTasks").document(task.id)
-            .update(updates)
-            .addOnFailureListener { e ->
-                Toast.makeText(requireContext(),
-                    "Update failed: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
+        db.collection("sharedTasks").document(task.id).update(updates)
     }
 
     private fun addSharedTask(title: String, assignTo: String) {
-        if (partnershipId.isEmpty()) {
-            Toast.makeText(requireContext(),
-                "No active partnership!", Toast.LENGTH_SHORT).show()
-            return
-        }
+        if (partnershipId.isEmpty()) return
+
         db.collection("partnerships").document(partnershipId).get()
             .addOnSuccessListener { doc ->
-                val memberEmails  = doc.get("memberEmails") as? List<String> ?: emptyList()
-                val members       = doc.get("members")      as? List<String> ?: emptyList()
-                val index         = memberEmails.indexOf(assignTo)
+                val memberEmails = doc.get("memberEmails") as? List<String> ?: emptyList()
+                val members = doc.get("members") as? List<String> ?: emptyList()
+                val index = memberEmails.indexOf(assignTo)
                 val assignedToUid = if (index >= 0) members[index] else ""
 
                 val taskId = db.collection("sharedTasks").document().id
-                val task   = SharedTask(
-                    id            = taskId,
-                    title         = title,
-                    assignedTo    = assignTo,
+                val task = SharedTask(
+                    id = taskId,
+                    title = title,
+                    assignedTo = assignTo,
                     assignedToUid = assignedToUid,
-                    createdBy     = auth.currentUser?.email ?: "",
+                    createdBy = auth.currentUser?.email ?: "",
                     partnershipId = partnershipId,
-                    isCompleted   = false
+                    isCompleted = false
                 )
                 db.collection("sharedTasks").document(taskId).set(task)
-                    .addOnSuccessListener {
-                        Toast.makeText(requireContext(),
-                            "Task added! ✅", Toast.LENGTH_SHORT).show()
-                    }
-                    .addOnFailureListener { e ->
-                        Toast.makeText(requireContext(),
-                            "Failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
             }
     }
 
     private fun showTaskClaimedNotification(userEmail: String, taskTitle: String) {
-        val channelId = "himatey_shared"
-        val notificationManager = requireContext()
-            .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        notificationManager.createNotificationChannel(
-            NotificationChannel(channelId, "Shared Task Updates",
-                NotificationManager.IMPORTANCE_HIGH)
-        )
-
-        val notification = NotificationCompat.Builder(requireContext(), channelId)
+        val notification = NotificationCompat.Builder(requireContext(), "himatey_shared")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Hi Matey Update 🤝")
             .setContentText("$userEmail is handling: $taskTitle")
@@ -215,7 +191,19 @@ class SharedTasksFragment : Fragment() {
             .setAutoCancel(true)
             .build()
 
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+        // ✅ Unique ID per task so multiple notifications don't overwrite each other
+        notificationManager.notify(taskTitle.hashCode(), notification)
+    }
+
+    private fun createNotificationChannel() {
+        val channel = NotificationChannel(
+            "himatey_shared",
+            "Shared Task Updates",
+            NotificationManager.IMPORTANCE_HIGH
+        )
+        val manager =
+            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.createNotificationChannel(channel)
     }
 
     private fun deleteSharedTask(task: SharedTask) {

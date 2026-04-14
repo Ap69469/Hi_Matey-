@@ -1,113 +1,187 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center_horizontal">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Fitness Tracking"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp"/>
-
-    <!-- Workout Timer Card -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#F3F3F3"
         android:padding="24dp"
-        android:gravity="center"
-        android:layout_marginBottom="16dp">
+        android:gravity="center_horizontal">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Workout Timer"
-            android:textSize="16sp"
-            android:textColor="#888888"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:id="@+id/tvTimer"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="00:00:00"
-            android:textSize="48sp"
+            android:text="Fitness Tracking"
+            android:textSize="24sp"
             android:textStyle="bold"
             android:layout_marginBottom="16dp"/>
 
+        <!-- Workout Type Selector -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:background="#F3F3F3"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
 
-            <Button
-                android:id="@+id/btnStart"
-                android:layout_width="0dp"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Start"
-                android:layout_marginEnd="8dp"/>
+                android:text="Workout Type"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#555555"
+                android:layout_marginBottom="8dp"/>
 
-            <Button
-                android:id="@+id/btnStop"
-                android:layout_width="0dp"
+            <Spinner
+                android:id="@+id/spinnerWorkoutType"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Stop"
-                android:backgroundTint="#888888"
-                android:layout_marginStart="8dp"/>
+                android:background="@android:drawable/btn_dropdown"
+                android:padding="8dp"/>
 
         </LinearLayout>
-    </LinearLayout>
 
-    <!-- Weekly Calendar Card -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="#F3F3F3"
-        android:padding="16dp"
-        android:layout_marginBottom="16dp">
+        <!-- Workout Timer Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#F3F3F3"
+            android:padding="24dp"
+            android:gravity="center"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Workout Timer"
+                android:textSize="16sp"
+                android:textColor="#888888"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvTimer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00:00"
+                android:textSize="48sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnStart"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Start"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/btnStop"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Stop"
+                    android:backgroundTint="#888888"
+                    android:layout_marginStart="8dp"/>
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Monthly Stats Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#F3F3F3"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📊 Workout Stats"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvThisMonth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="This Month: Loading..."
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/tvLastMonth"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Last Month: Loading..."
+                android:textSize="14sp"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/tvTotalWorkouts"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total Workouts: Loading..."
+                android:textSize="14sp"/>
+
+        </LinearLayout>
+
+        <!-- Weekly Calendar Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#F3F3F3"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/tvWeekCalendar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="This Week:\nLoading..."
+                android:textSize="14sp"
+                android:fontFamily="monospace"
+                android:textColor="#333333"/>
+
+        </LinearLayout>
+
+        <!-- Capture Photo Button -->
+        <Button
+            android:id="@+id/btnCapturePhoto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="📷 Capture Photo"
+            android:layout_marginBottom="8dp"/>
 
         <TextView
-            android:id="@+id/tvWeekCalendar"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="This Week:\nLoading..."
-            android:textSize="14sp"
-            android:fontFamily="monospace"
-            android:textColor="#333333"/>
+            android:text="Opens Camera → Goes to Photo Gallery"
+            android:textSize="12sp"
+            android:textColor="#888888"
+            android:layout_marginBottom="16dp"/>
+
+        <Button
+            android:id="@+id/btnBackFitness"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="&lt; Home"
+            android:backgroundTint="#888888"/>
 
     </LinearLayout>
-
-    <!-- Capture Photo Button -->
-    <Button
-        android:id="@+id/btnCapturePhoto"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="📷 Capture Photo"
-        android:layout_marginBottom="8dp"/>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Opens Camera → Goes to Photo Gallery"
-        android:textSize="12sp"
-        android:textColor="#888888"
-        android:layout_marginBottom="16dp"/>
-
-    <Button
-        android:id="@+id/btnBackFitness"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="&lt; Home"
-        android:backgroundTint="#888888"/>
-
-</LinearLayout>
+</ScrollView>

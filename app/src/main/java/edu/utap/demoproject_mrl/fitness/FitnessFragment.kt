@@ -9,9 +9,7 @@ import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -32,10 +30,27 @@ class FitnessFragment : Fragment() {
 
     private lateinit var tvTimer: TextView
     private lateinit var tvWeekCalendar: TextView
+    private lateinit var tvThisMonth: TextView
+    private lateinit var tvLastMonth: TextView
+    private lateinit var tvTotalWorkouts: TextView
+    private lateinit var spinnerWorkoutType: Spinner
+
     private var handler = Handler(Looper.getMainLooper())
     private var startTime: Long = 0L
     private var isRunning = false
     private var photoUri: Uri? = null
+
+    // ✅ Workout types catalog
+    private val workoutTypes = listOf(
+        "🏃 Running",
+        "🚴 Cycling",
+        "🏊 Swimming",
+        "🏋️ Weight Training",
+        "🧘 Yoga",
+        "🚶 Walking",
+        "⚽ Sports",
+        "💪 General"
+    )
 
     private val timerRunnable = object : Runnable {
         override fun run() {
@@ -75,8 +90,22 @@ class FitnessFragment : Fragment() {
 
         tvTimer = view.findViewById(R.id.tvTimer)
         tvWeekCalendar = view.findViewById(R.id.tvWeekCalendar)
+        tvThisMonth = view.findViewById(R.id.tvThisMonth)
+        tvLastMonth = view.findViewById(R.id.tvLastMonth)
+        tvTotalWorkouts = view.findViewById(R.id.tvTotalWorkouts)
+        spinnerWorkoutType = view.findViewById(R.id.spinnerWorkoutType)
+
+        // ✅ Setup workout type spinner
+        val spinnerAdapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+            workoutTypes
+        )
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerWorkoutType.adapter = spinnerAdapter
 
         loadWeeklyCalendar()
+        loadMonthlyStats()
 
         view.findViewById<Button>(R.id.btnStart).setOnClickListener {
             if (!isRunning) {
@@ -94,10 +123,16 @@ class FitnessFragment : Fragment() {
                 handler.removeCallbacks(timerRunnable)
                 val durationSeconds = (System.currentTimeMillis() - startTime) / 1000
 
-                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                val session = WorkoutSession(date = today, durationSeconds = durationSeconds)
+                // ✅ Get selected workout type
+                val selectedType = spinnerWorkoutType.selectedItem.toString()
 
-                // ✅ Fixed — lifecycle-aware coroutine
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val session = WorkoutSession(
+                    date = today,
+                    durationSeconds = durationSeconds,
+                    workoutType = selectedType  // ✅ Save type
+                )
+
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                     AppDatabase.getDatabase(requireContext())
                         .workoutDao().insertWorkout(session)
@@ -105,9 +140,10 @@ class FitnessFragment : Fragment() {
                         val mins = durationSeconds / 60
                         val secs = durationSeconds % 60
                         Toast.makeText(requireContext(),
-                            "Workout saved! ${mins}m ${secs}s 🎉",
+                            "Workout saved! $selectedType ${mins}m ${secs}s 🎉",
                             Toast.LENGTH_SHORT).show()
                         loadWeeklyCalendar()
+                        loadMonthlyStats()  // ✅ Refresh stats
                     }
                 }
             }
@@ -127,8 +163,38 @@ class FitnessFragment : Fragment() {
         }
     }
 
+    private fun loadMonthlyStats() {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val sdf = SimpleDateFormat("yyyy-MM", Locale.getDefault())
+            val cal = Calendar.getInstance()
+
+            // This month prefix e.g. "2026-04"
+            val thisMonthPrefix = sdf.format(cal.time)
+
+            // Last month prefix
+            cal.add(Calendar.MONTH, -1)
+            val lastMonthPrefix = sdf.format(cal.time)
+
+            // Days in each month
+            cal.add(Calendar.MONTH, 1)
+            val daysInThisMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+            cal.add(Calendar.MONTH, -1)
+            val daysInLastMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+            val dao = AppDatabase.getDatabase(requireContext()).workoutDao()
+            val thisMonthDays = dao.getWorkoutDaysInMonth(thisMonthPrefix)
+            val lastMonthDays = dao.getWorkoutDaysInMonth(lastMonthPrefix)
+            val totalWorkouts = dao.getTotalWorkouts()
+
+            withContext(Dispatchers.Main) {
+                tvThisMonth.text = "📅 This Month: $thisMonthDays / $daysInThisMonth days"
+                tvLastMonth.text = "📅 Last Month: $lastMonthDays / $daysInLastMonth days"
+                tvTotalWorkouts.text = "🏆 Total Workouts: $totalWorkouts"
+            }
+        }
+    }
+
     private fun loadWeeklyCalendar() {
-        // ✅ Fixed — lifecycle-aware coroutine
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val workoutDates = AppDatabase.getDatabase(requireContext())
                 .workoutDao().getAllWorkoutDates().toSet()

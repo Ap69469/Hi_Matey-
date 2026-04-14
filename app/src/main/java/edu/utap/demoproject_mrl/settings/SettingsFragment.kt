@@ -1,5 +1,6 @@
 package edu.utap.demoproject_mrl.settings
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +9,8 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.google.firebase.auth.FirebaseAuth
@@ -34,7 +37,24 @@ class SettingsFragment : Fragment() {
         view.findViewById<TextView>(R.id.tvUserEmail).text =
             currentUser?.email ?: "Not logged in"
 
-        // ✅ Correct IDs matching XML
+        // ✅ Theme switch
+        val switchTheme = view.findViewById<SwitchCompat>(R.id.switchTheme)
+
+        // Load saved theme preference
+        val prefs = requireContext().getSharedPreferences("himatey_prefs", Context.MODE_PRIVATE)
+        val isDarkMode = prefs.getBoolean("dark_mode", false)
+        switchTheme.isChecked = isDarkMode
+
+        switchTheme.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+                prefs.edit().putBoolean("dark_mode", true).apply()
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+                prefs.edit().putBoolean("dark_mode", false).apply()
+            }
+        }
+
         val etPartnerEmail = view.findViewById<EditText>(R.id.etPartnerEmail)
 
         view.findViewById<Button>(R.id.btnInviteUser).setOnClickListener {

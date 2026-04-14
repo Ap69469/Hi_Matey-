@@ -8,5 +8,6 @@ data class WorkoutSession(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val date: String = "",        // "2026-04-09"
-    val durationSeconds: Long = 0
+    val durationSeconds: Long = 0,
+    val workoutType: String = "General"
 )

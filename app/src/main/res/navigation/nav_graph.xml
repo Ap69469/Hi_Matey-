@@ -92,6 +92,17 @@
         <action
             android:id="@+id/action_photos_to_fitness"
             app:destination="@id/fitnessFragment" />
+        <!-- ✅ New action to fullscreen -->
+        <action
+            android:id="@+id/action_photos_to_fullscreen"
+            app:destination="@id/photoFullscreenFragment" />
+    </fragment>
+
+    <!-- ✅ New fullscreen photo viewer -->
+    <fragment
+        android:id="@+id/photoFullscreenFragment"
+        android:name="edu.utap.demoproject_mrl.photos.PhotoFullscreenFragment"
+        android:label="Photo Viewer">
     </fragment>
 
     <!-- Settings -->

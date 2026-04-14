@@ -14,7 +14,9 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
 
+    <!-- ✅ Added id -->
     <TextView
+        android:id="@+id/tvPhotoCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Workout Photos"

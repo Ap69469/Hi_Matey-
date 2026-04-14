@@ -141,6 +141,7 @@ class TasksFragment : Fragment() {
         val data = Data.Builder()
             .putString("task_title", title)
             .build()
+        WorkManager.getInstance(requireContext()).cancelAllWorkByTag(title)
 
         val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)

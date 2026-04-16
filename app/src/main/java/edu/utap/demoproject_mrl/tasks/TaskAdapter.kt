@@ -68,7 +68,7 @@ class TaskAdapter(
         holder.cbTask.setOnClickListener { onToggle(task) }
         holder.btnDelete.setOnClickListener { onDelete(task) }
 
-        // ✅ Scroll style time picker — same as shared tasks
+
         holder.btnSetReminder.setOnClickListener {
             val calendar = Calendar.getInstance()
             val dialog = android.app.TimePickerDialog(

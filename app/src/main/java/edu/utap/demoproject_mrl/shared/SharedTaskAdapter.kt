@@ -101,7 +101,7 @@ class SharedTaskAdapter(
             )
             dialog.show()
         }
-    } // ✅ closes onBindViewHolder
+    }
 
     override fun getItemCount() = tasks.size
-} // ✅ closes class
+}

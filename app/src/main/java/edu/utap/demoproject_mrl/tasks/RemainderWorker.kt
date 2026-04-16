@@ -31,7 +31,7 @@ class ReminderWorker(
         val appContext = applicationContext
         val channelId = "himatey_reminders"
 
-        // ✅ Permission guard for Android 13+
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     appContext, Manifest.permission.POST_NOTIFICATIONS
@@ -39,7 +39,7 @@ class ReminderWorker(
             ) return
         }
 
-        // ✅ Create notification channel
+
         val notificationManager =
             appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
@@ -51,7 +51,7 @@ class ReminderWorker(
         }
         notificationManager.createNotificationChannel(channel)
 
-        // ✅ PendingIntent to open app on tap
+
         val intent = Intent(appContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -60,7 +60,7 @@ class ReminderWorker(
             PendingIntent.FLAG_IMMUTABLE
         )
 
-        // ✅ Build notification with applicationContext
+
         val notification = NotificationCompat.Builder(appContext, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Hi Matey Reminder 🔔")
@@ -72,7 +72,7 @@ class ReminderWorker(
             .setContentIntent(pendingIntent) // ✅ Opens app on tap
             .build()
 
-        // ✅ Use NotificationManagerCompat + stable ID per task
+
         NotificationManagerCompat.from(appContext)
             .notify(taskTitle.hashCode(), notification)
     }

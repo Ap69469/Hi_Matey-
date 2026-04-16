@@ -29,17 +29,16 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
             val newIsCompleted = !task.isCompleted
 
             val newStreak = when {
-                // ✅ Completing task
+
                 newIsCompleted && task.lastCompletedDate == yesterday -> task.streak + 1
                 newIsCompleted && task.lastCompletedDate != today -> 1
                 newIsCompleted -> task.streak // already completed today
 
-                // ✅ Unchecking task — decrement streak
+
                 else -> if (task.streak > 0) task.streak - 1 else 0
             }
 
-            // ✅ Only set lastCompletedDate when completing
-            // When unchecking, clear it so resetTasksForNewDay works correctly
+
             val newLastCompletedDate = if (newIsCompleted) today else ""
 
             taskDao.updateTask(task.copy(

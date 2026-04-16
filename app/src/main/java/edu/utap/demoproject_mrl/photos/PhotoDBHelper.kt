@@ -8,7 +8,7 @@ class PhotoDBHelper {
     private val db = FirebaseFirestore.getInstance()
     private val rootCollection = "userPhotos"
 
-    // ✅ Fetch all photos for this user
+
     fun fetchPhotoMeta(
         userUid: String,
         resultListener: (List<PhotoMeta>) -> Unit
@@ -29,7 +29,7 @@ class PhotoDBHelper {
             }
     }
 
-    // ✅ Create photo metadata in Firestore
+
     fun createPhotoMeta(
         photoMeta: PhotoMeta,
         resultListener: () -> Unit
@@ -45,7 +45,7 @@ class PhotoDBHelper {
             }
     }
 
-    // ✅ Delete photo metadata from Firestore
+
     fun removePhotoMeta(
         photoMeta: PhotoMeta,
         resultListener: () -> Unit

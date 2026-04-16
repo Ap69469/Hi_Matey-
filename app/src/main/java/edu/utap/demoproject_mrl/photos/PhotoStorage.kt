@@ -11,7 +11,7 @@ class PhotoStorage {
     private val photoStorage: StorageReference =
         FirebaseStorage.getInstance().reference.child("images")
 
-    // ✅ Upload image to Firebase Storage under userUid folder
+
     fun uploadImage(
         localFile: File,
         userUid: String,
@@ -47,7 +47,7 @@ class PhotoStorage {
                 Log.d("PhotoStorage", "Failed to get download URL: ${it.message}")
             }
     }
-    // ✅ Delete image from Firebase Storage
+
     fun deleteImage(userUid: String, uuid: String) {
         photoStorage.child(userUid).child(uuid).delete()
             .addOnSuccessListener {
@@ -58,7 +58,7 @@ class PhotoStorage {
             }
     }
 
-    // ✅ Get StorageReference for Glide to load
+
     fun uuid2StorageReference(userUid: String, uuid: String): StorageReference {
         return photoStorage.child(userUid).child(uuid)
     }

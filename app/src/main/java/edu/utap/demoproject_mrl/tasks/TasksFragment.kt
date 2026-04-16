@@ -134,18 +134,13 @@ class TasksFragment : Fragment() {
             .putString("task_title", title)
             .build()
 
-        // ✅ Use stable tag per task
-        val tag = "reminder_$title"
+        val workName = "reminder_${title.trim().lowercase().hashCode()}"
 
-        // ✅ Cancel previous reminder for this task
-        WorkManager.getInstance(requireContext().applicationContext)
-            .cancelAllWorkByTag(tag)
 
-        // ✅ Schedule with tag
         val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
             .setInputData(data)
-            .addTag(tag) // ✅ Tag now actually added
+            .addTag(workName)
             .build()
 
         WorkManager.getInstance(requireContext().applicationContext)

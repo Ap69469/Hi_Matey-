@@ -23,6 +23,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.firebase.auth.FirebaseAuth
@@ -61,14 +62,13 @@ class SharedTasksFragment : Fragment() {
         adapter = SharedTaskAdapter(
             onToggle = { task -> toggleSharedTask(task) },
             onDelete = { task -> deleteSharedTask(task) },
-            // ✅ Handle reminder set
+
             onSetReminder = { task, hour, minute ->
                 val reminderTime = String.format("%02d:%02d", hour, minute)
-                // Save reminderTime to Firestore
                 db.collection("sharedTasks").document(task.id)
                     .update("reminderTime", reminderTime)
-                // Schedule WorkManager reminder
-                scheduleSharedReminder(task.title, hour, minute)
+
+                scheduleSharedReminder(task.id, task.title, hour, minute)
                 Toast.makeText(requireContext(),
                     "Reminder set for ${task.title} at $reminderTime ⏰",
                     Toast.LENGTH_SHORT).show()
@@ -171,8 +171,8 @@ class SharedTasksFragment : Fragment() {
             }
     }
 
-    // ✅ Schedule WorkManager reminder for shared task
-    private fun scheduleSharedReminder(title: String, hour: Int, minute: Int) {
+
+    private fun scheduleSharedReminder(taskId: String, title: String, hour: Int, minute: Int) {
         val now = Calendar.getInstance()
         val reminderTime = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, hour)
@@ -190,12 +190,8 @@ class SharedTasksFragment : Fragment() {
             .putString("task_title", title)
             .build()
 
-        // ✅ Unique work name per shared task
-        val safeTitle = title.replace(Regex("[^a-zA-Z0-9_-]"), "_")
-        val workName = "shared_reminder_$safeTitle"
 
-        WorkManager.getInstance(requireContext().applicationContext)
-            .cancelAllWorkByTag(workName)
+        val workName = "shared_reminder_$taskId"
 
         val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
@@ -203,8 +199,13 @@ class SharedTasksFragment : Fragment() {
             .addTag(workName)
             .build()
 
+
         WorkManager.getInstance(requireContext().applicationContext)
-            .enqueue(reminderRequest)
+            .enqueueUniqueWork(
+                workName,
+                ExistingWorkPolicy.REPLACE,
+                reminderRequest
+            )
     }
 
     private fun toggleSharedTask(task: SharedTask) {

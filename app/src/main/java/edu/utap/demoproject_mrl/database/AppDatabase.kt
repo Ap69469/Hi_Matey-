@@ -60,7 +60,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "himatey_database"
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3,MIGRATION_3_4)
-                    .fallbackToDestructiveMigration()
+
                     .build()
                 INSTANCE = instance
                 instance

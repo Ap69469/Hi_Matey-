@@ -252,7 +252,7 @@ class FitnessFragment : Fragment() {
         }
     }
 
-    // ✅ Updated launchCamera — generates UUID and saves file reference
+
     private fun launchCamera() {
         val photoFile = createImageFile()
         currentPhotoFile = photoFile

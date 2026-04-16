@@ -32,7 +32,7 @@ class PhotoAdapter(
         val meta = photoMetas[position]
         val userUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        // ✅ Click listeners outside the async callback
+
         holder.ivPhoto.setOnClickListener {
             val pos = holder.bindingAdapterPosition
             if (pos != RecyclerView.NO_POSITION) onClick(pos)
@@ -52,7 +52,7 @@ class PhotoAdapter(
                 .error(android.R.drawable.ic_menu_report_image)
                 .into(holder.ivPhoto)
         }
-    } // ✅ closes onBindViewHolder
+    }
 
     override fun getItemCount() = photoMetas.size
 }

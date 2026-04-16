@@ -32,6 +32,7 @@
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:textColor="#6200EE"/>
+
         <TextView
             android:id="@+id/tvStreak"
             android:layout_width="wrap_content"
@@ -39,7 +40,6 @@
             android:textSize="11sp"
             android:textColor="#FF6600"
             android:textStyle="bold"/>
-
 
     </LinearLayout>
 
@@ -51,11 +51,13 @@
         android:textSize="11sp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:layout_marginEnd="4dp"/>
+
     <ImageButton
         android:id="@+id/btnDelete"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:src="@android:drawable/ic_menu_delete"
-        android:background="?android:attr/selectableItemBackgroundBorderless"/>
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Delete task"/>
 
 </LinearLayout>

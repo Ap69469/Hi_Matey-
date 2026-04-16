@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
     ) { /* permission result handled */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // ✅ Apply saved theme BEFORE setContentView
+
         val prefs = getSharedPreferences("himatey_prefs", Context.MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         if (isDarkMode) {

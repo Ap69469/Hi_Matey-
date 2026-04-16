@@ -37,10 +37,10 @@ class SettingsFragment : Fragment() {
         view.findViewById<TextView>(R.id.tvUserEmail).text =
             currentUser?.email ?: "Not logged in"
 
-        // ✅ Theme switch
+
         val switchTheme = view.findViewById<SwitchCompat>(R.id.switchTheme)
 
-        // Load saved theme preference
+
         val prefs = requireContext().getSharedPreferences("himatey_prefs", Context.MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean("dark_mode", false)
         switchTheme.isChecked = isDarkMode

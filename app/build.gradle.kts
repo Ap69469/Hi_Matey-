@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     id("com.google.gms.google-services")
-    id("com.google.devtools.ksp")
+    id("com.google.devtools.ksp") // ✅ ksp handles everything
 }
 
 android {
@@ -31,8 +31,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-
 }
 
 dependencies {
@@ -78,4 +76,6 @@ dependencies {
 
     // Glide
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    ksp("com.github.bumptech.glide:ksp:4.16.0") // ✅ ksp instead of kapt
+    implementation("com.firebaseui:firebase-ui-storage:8.0.2")
 }

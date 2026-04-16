@@ -16,9 +16,13 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.firebase.auth.FirebaseAuth
 import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.database.AppDatabase
 import edu.utap.demoproject_mrl.model.WorkoutSession
+import edu.utap.demoproject_mrl.photos.PhotoDBHelper
+import edu.utap.demoproject_mrl.photos.PhotoMeta
+import edu.utap.demoproject_mrl.photos.PhotoStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,7 +44,12 @@ class FitnessFragment : Fragment() {
     private var isRunning = false
     private var photoUri: Uri? = null
 
-    // ✅ Workout types catalog
+    // ✅ Firebase Storage helpers
+    private val photoStorage = PhotoStorage()
+    private val photoDBHelper = PhotoDBHelper()
+    private var currentUUID: String = ""
+    private var currentPhotoFile: File? = null
+
     private val workoutTypes = listOf(
         "🏃 Running",
         "🚴 Cycling",
@@ -63,12 +72,46 @@ class FitnessFragment : Fragment() {
         }
     }
 
+    // ✅ Updated takePicture — uploads to Firebase Storage
     private val takePicture = registerForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && photoUri != null) {
-            Toast.makeText(requireContext(), "Photo saved!", Toast.LENGTH_SHORT).show()
-            findNavController().navigate(R.id.action_fitness_to_photos)
+            val userUid = FirebaseAuth.getInstance().currentUser?.uid
+            val localFile = currentPhotoFile
+
+            if (userUid == null || localFile == null) {
+                Toast.makeText(requireContext(),
+                    "Upload failed — not logged in", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
+            }
+
+            Toast.makeText(requireContext(),
+                "Uploading photo... ☁️", Toast.LENGTH_SHORT).show()
+
+            // ✅ Upload to Firebase Storage
+            photoStorage.uploadImage(localFile, userUid, currentUUID) { byteSize ->
+
+                // ✅ Save metadata to Firestore
+                val photoMeta = PhotoMeta(
+                    ownerUid = userUid,
+                    uuid = currentUUID,
+                    byteSize = byteSize,
+                    pictureTitle = "Workout Photo"
+                )
+
+                photoDBHelper.createPhotoMeta(photoMeta) {
+                    requireActivity().runOnUiThread {
+                        Toast.makeText(requireContext(),
+                            "Photo saved to cloud! ✅",
+                            Toast.LENGTH_SHORT).show()
+                        // ✅ Reset after use
+                        currentUUID = ""
+                        currentPhotoFile = null
+                        findNavController().navigate(R.id.action_fitness_to_photos)
+                    }
+                }
+            }
         }
     }
 
@@ -95,7 +138,6 @@ class FitnessFragment : Fragment() {
         tvTotalWorkouts = view.findViewById(R.id.tvTotalWorkouts)
         spinnerWorkoutType = view.findViewById(R.id.spinnerWorkoutType)
 
-        // ✅ Setup workout type spinner
         val spinnerAdapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_item,
@@ -122,15 +164,12 @@ class FitnessFragment : Fragment() {
                 isRunning = false
                 handler.removeCallbacks(timerRunnable)
                 val durationSeconds = (System.currentTimeMillis() - startTime) / 1000
-
-                // ✅ Get selected workout type
                 val selectedType = spinnerWorkoutType.selectedItem.toString()
-
                 val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val session = WorkoutSession(
                     date = today,
                     durationSeconds = durationSeconds,
-                    workoutType = selectedType  // ✅ Save type
+                    workoutType = selectedType
                 )
 
                 viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
@@ -143,7 +182,7 @@ class FitnessFragment : Fragment() {
                             "Workout saved! $selectedType ${mins}m ${secs}s 🎉",
                             Toast.LENGTH_SHORT).show()
                         loadWeeklyCalendar()
-                        loadMonthlyStats()  // ✅ Refresh stats
+                        loadMonthlyStats()
                     }
                 }
             }
@@ -167,15 +206,9 @@ class FitnessFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val sdf = SimpleDateFormat("yyyy-MM", Locale.getDefault())
             val cal = Calendar.getInstance()
-
-            // This month prefix e.g. "2026-04"
             val thisMonthPrefix = sdf.format(cal.time)
-
-            // Last month prefix
             cal.add(Calendar.MONTH, -1)
             val lastMonthPrefix = sdf.format(cal.time)
-
-            // Days in each month
             cal.add(Calendar.MONTH, 1)
             val daysInThisMonth = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
             cal.add(Calendar.MONTH, -1)
@@ -202,7 +235,6 @@ class FitnessFragment : Fragment() {
             val calendar = Calendar.getInstance()
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-
             calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
 
             val weekDisplay = StringBuilder("This Week:\n")
@@ -220,8 +252,12 @@ class FitnessFragment : Fragment() {
         }
     }
 
+    // ✅ Updated launchCamera — generates UUID and saves file reference
     private fun launchCamera() {
         val photoFile = createImageFile()
+        currentPhotoFile = photoFile
+        currentUUID = UUID.randomUUID().toString() // ✅ Generate UUID
+
         photoUri = FileProvider.getUriForFile(
             requireContext(),
             "${requireContext().packageName}.fileprovider",

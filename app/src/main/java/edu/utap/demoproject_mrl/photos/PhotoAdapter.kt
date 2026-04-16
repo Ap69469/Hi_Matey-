@@ -1,6 +1,5 @@
 package edu.utap.demoproject_mrl.photos
 
-import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -8,11 +7,13 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.google.firebase.auth.FirebaseAuth
 import edu.utap.demoproject_mrl.R
 
 class PhotoAdapter(
-    private val photoUris: MutableList<Uri>,
-    private val onDelete: (Uri, Int) -> Unit,
+    private val photoMetas: MutableList<PhotoMeta>,
+    private val photoStorage: PhotoStorage,
+    private val onDelete: (PhotoMeta, Int) -> Unit,
     private val onClick: (Int) -> Unit
 ) : RecyclerView.Adapter<PhotoAdapter.PhotoViewHolder>() {
 
@@ -28,30 +29,30 @@ class PhotoAdapter(
     }
 
     override fun onBindViewHolder(holder: PhotoViewHolder, position: Int) {
-        val uri = photoUris[position]
+        val meta = photoMetas[position]
+        val userUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        Glide.with(holder.ivPhoto.context)
-            .load(uri)
-            .centerCrop()
-            .into(holder.ivPhoto)
-
-        // ✅ Click photo to expand
+        // ✅ Click listeners outside the async callback
         holder.ivPhoto.setOnClickListener {
             val pos = holder.bindingAdapterPosition
             if (pos != RecyclerView.NO_POSITION) onClick(pos)
         }
 
-        // ✅ Delete photo
         holder.btnDelete.setOnClickListener {
             val pos = holder.bindingAdapterPosition
-            if (pos != RecyclerView.NO_POSITION) onDelete(uri, pos)
+            if (pos != RecyclerView.NO_POSITION) onDelete(meta, pos)
         }
-    }
 
-    fun removeAt(position: Int) {
-        photoUris.removeAt(position)
-        notifyItemRemoved(position)
-    }
+        // ✅ Load via download URL
+        photoStorage.getDownloadUrl(userUid, meta.uuid) { url ->
+            Glide.with(holder.ivPhoto.context)
+                .load(url)
+                .centerCrop()
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_report_image)
+                .into(holder.ivPhoto)
+        }
+    } // ✅ closes onBindViewHolder
 
-    override fun getItemCount() = photoUris.size
+    override fun getItemCount() = photoMetas.size
 }

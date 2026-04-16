@@ -1,6 +1,5 @@
 package edu.utap.demoproject_mrl.tasks
 
-import android.app.TimePickerDialog
 import android.graphics.Paint
 import android.view.LayoutInflater
 import android.view.View
@@ -51,7 +50,6 @@ class TaskAdapter(
 
         holder.cbTask.isChecked = task.isCompleted
 
-        // Strike through when completed
         if (task.isCompleted) {
             holder.tvTitle.paintFlags =
                 holder.tvTitle.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
@@ -60,7 +58,6 @@ class TaskAdapter(
                 holder.tvTitle.paintFlags and Paint.STRIKE_THRU_TEXT_FLAG.inv()
         }
 
-        // Show streak
         if (task.streak > 0) {
             holder.tvStreak.text = "🔥 ${task.streak} day streak!"
             holder.tvStreak.visibility = View.VISIBLE
@@ -71,10 +68,10 @@ class TaskAdapter(
         holder.cbTask.setOnClickListener { onToggle(task) }
         holder.btnDelete.setOnClickListener { onDelete(task) }
 
-        // Set reminder for THIS specific task
+        // ✅ Scroll style time picker — same as shared tasks
         holder.btnSetReminder.setOnClickListener {
             val calendar = Calendar.getInstance()
-            val dialog = TimePickerDialog(
+            val dialog = android.app.TimePickerDialog(
                 holder.itemView.context,
                 android.R.style.Theme_Holo_Light_Dialog,
                 { _, hour, minute ->

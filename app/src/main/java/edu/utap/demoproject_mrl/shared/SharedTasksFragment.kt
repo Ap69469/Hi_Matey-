@@ -1,8 +1,13 @@
 package edu.utap.demoproject_mrl.shared
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,15 +16,24 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import edu.utap.demoproject_mrl.MainActivity
 import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.model.SharedTask
+import edu.utap.demoproject_mrl.tasks.ReminderWorker
+import java.util.Calendar
+import java.util.concurrent.TimeUnit
 
 class SharedTasksFragment : Fragment() {
 
@@ -28,8 +42,6 @@ class SharedTasksFragment : Fragment() {
     private lateinit var adapter: SharedTaskAdapter
     private var partnershipId: String = ""
     private var taskListener: ListenerRegistration? = null
-
-    // ✅ Track previous tasks for notification comparison
     private var previousTasks = listOf<SharedTask>()
     private var isFirstLoad = true
 
@@ -48,7 +60,19 @@ class SharedTasksFragment : Fragment() {
 
         adapter = SharedTaskAdapter(
             onToggle = { task -> toggleSharedTask(task) },
-            onDelete = { task -> deleteSharedTask(task) }
+            onDelete = { task -> deleteSharedTask(task) },
+            // ✅ Handle reminder set
+            onSetReminder = { task, hour, minute ->
+                val reminderTime = String.format("%02d:%02d", hour, minute)
+                // Save reminderTime to Firestore
+                db.collection("sharedTasks").document(task.id)
+                    .update("reminderTime", reminderTime)
+                // Schedule WorkManager reminder
+                scheduleSharedReminder(task.title, hour, minute)
+                Toast.makeText(requireContext(),
+                    "Reminder set for ${task.title} at $reminderTime ⏰",
+                    Toast.LENGTH_SHORT).show()
+            }
         )
 
         view.findViewById<RecyclerView>(R.id.rvSharedTasks).apply {
@@ -91,7 +115,7 @@ class SharedTasksFragment : Fragment() {
     override fun onStart() {
         super.onStart()
         if (partnershipId.isNotEmpty() && taskListener == null) {
-            isFirstLoad = true  // ✅ Reset on return
+            isFirstLoad = true
             listenForSharedTasks()
         }
     }
@@ -126,13 +150,16 @@ class SharedTasksFragment : Fragment() {
                     it.toObject(SharedTask::class.java)
                 }
 
-                // ✅ Only fire notifications from server-confirmed snapshots
                 if (!snapshot.metadata.hasPendingWrites()) {
                     if (!isFirstLoad) {
                         tasks.forEach { newTask ->
                             val oldTask = previousTasks.find { it.id == newTask.id }
                             if (newTask.isCompleted && oldTask?.isCompleted == false) {
-                                showTaskClaimedNotification(newTask.assignedTo, newTask.title)
+                                showTaskClaimedNotification(
+                                    newTask.assignedTo,
+                                    newTask.title,
+                                    newTask.id
+                                )
                             }
                         }
                     }
@@ -140,12 +167,46 @@ class SharedTasksFragment : Fragment() {
                     previousTasks = tasks
                 }
 
-                // ✅ Always update UI
                 adapter.submitList(tasks)
             }
     }
 
-    // ✅ No notification here — fires on Firestore snapshot instead
+    // ✅ Schedule WorkManager reminder for shared task
+    private fun scheduleSharedReminder(title: String, hour: Int, minute: Int) {
+        val now = Calendar.getInstance()
+        val reminderTime = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, hour)
+            set(Calendar.MINUTE, minute)
+            set(Calendar.SECOND, 0)
+        }
+
+        if (reminderTime.before(now)) {
+            reminderTime.add(Calendar.DAY_OF_MONTH, 1)
+        }
+
+        val delay = reminderTime.timeInMillis - now.timeInMillis
+
+        val data = Data.Builder()
+            .putString("task_title", title)
+            .build()
+
+        // ✅ Unique work name per shared task
+        val safeTitle = title.replace(Regex("[^a-zA-Z0-9_-]"), "_")
+        val workName = "shared_reminder_$safeTitle"
+
+        WorkManager.getInstance(requireContext().applicationContext)
+            .cancelAllWorkByTag(workName)
+
+        val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
+            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
+            .setInputData(data)
+            .addTag(workName)
+            .build()
+
+        WorkManager.getInstance(requireContext().applicationContext)
+            .enqueue(reminderRequest)
+    }
+
     private fun toggleSharedTask(task: SharedTask) {
         val newStatus = !task.isCompleted
         val updates = mapOf(
@@ -179,20 +240,40 @@ class SharedTasksFragment : Fragment() {
             }
     }
 
-    private fun showTaskClaimedNotification(userEmail: String, taskTitle: String) {
-        val notificationManager =
-            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private fun showTaskClaimedNotification(
+        userEmail: String,
+        taskTitle: String,
+        taskId: String
+    ) {
+        val appContext = requireContext().applicationContext
 
-        val notification = NotificationCompat.Builder(requireContext(), "himatey_shared")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    appContext, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) return
+        }
+
+        val intent = Intent(appContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            appContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(appContext, "himatey_shared")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Hi Matey Update 🤝")
             .setContentText("$userEmail is handling: $taskTitle")
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("$userEmail is handling: $taskTitle"))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
             .build()
 
-        // ✅ Unique ID per task so multiple notifications don't overwrite each other
-        notificationManager.notify(taskTitle.hashCode(), notification)
+        NotificationManagerCompat.from(appContext)
+            .notify(taskId.hashCode(), notification)
     }
 
     private fun createNotificationChannel() {
@@ -201,8 +282,8 @@ class SharedTasksFragment : Fragment() {
             "Shared Task Updates",
             NotificationManager.IMPORTANCE_HIGH
         )
-        val manager =
-            requireContext().getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val manager = requireContext().applicationContext
+            .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)
     }
 

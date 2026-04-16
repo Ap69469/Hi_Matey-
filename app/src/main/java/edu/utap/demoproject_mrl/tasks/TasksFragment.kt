@@ -32,17 +32,13 @@ class TasksFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View {
-        return inflater.inflate(R.layout.fragment_tasks, container, false)
-    }
+    ): View = inflater.inflate(R.layout.fragment_tasks, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Reset tasks if new day
         viewModel.resetTasksIfNewDay()
 
-        // Set up RecyclerView
         adapter = TaskAdapter(
             onToggle = { task -> viewModel.toggleTask(task) },
             onDelete = { task -> viewModel.deleteTask(task) },
@@ -56,34 +52,32 @@ class TasksFragment : Fragment() {
             }
         )
 
-        val rvTasks = view.findViewById<RecyclerView>(R.id.rvTasks)
-        rvTasks.layoutManager = LinearLayoutManager(requireContext())
-        rvTasks.adapter = adapter
+        view.findViewById<RecyclerView>(R.id.rvTasks).apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = this@TasksFragment.adapter
+        }
 
-        // Observe tasks
         viewModel.allTasks.observe(viewLifecycleOwner) { tasks ->
             adapter.submitList(tasks)
         }
 
         val etNewTask = view.findViewById<EditText>(R.id.etNewTask)
 
-        // Long press to pick reminder time
         etNewTask.setOnLongClickListener {
             showTimePicker()
             true
         }
 
-        // Add task button
         view.findViewById<Button>(R.id.btnAddTask).setOnClickListener {
             val title = etNewTask.text.toString().trim()
             if (title.isEmpty()) {
-                Toast.makeText(requireContext(), "Please enter a task", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(),
+                    "Please enter a task", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             viewModel.addTask(title, selectedReminderTime)
 
-            // Schedule reminder if time was set
             if (selectedHour >= 0 && selectedMinute >= 0) {
                 scheduleReminder(title, selectedHour, selectedMinute)
                 Toast.makeText(requireContext(),
@@ -93,14 +87,12 @@ class TasksFragment : Fragment() {
                 Toast.makeText(requireContext(), "Task added!", Toast.LENGTH_SHORT).show()
             }
 
-            // Reset fields
             etNewTask.text.clear()
             selectedReminderTime = ""
             selectedHour = -1
             selectedMinute = -1
         }
 
-        // Back button
         view.findViewById<Button>(R.id.btnBack).setOnClickListener {
             findNavController().navigate(R.id.action_tasks_to_home)
         }
@@ -123,6 +115,7 @@ class TasksFragment : Fragment() {
             true
         ).show()
     }
+
     private fun scheduleReminder(title: String, hour: Int, minute: Int) {
         val now = Calendar.getInstance()
         val reminderTime = Calendar.getInstance().apply {
@@ -131,7 +124,6 @@ class TasksFragment : Fragment() {
             set(Calendar.SECOND, 0)
         }
 
-        // If time already passed today, schedule for tomorrow
         if (reminderTime.before(now)) {
             reminderTime.add(Calendar.DAY_OF_MONTH, 1)
         }
@@ -141,15 +133,22 @@ class TasksFragment : Fragment() {
         val data = Data.Builder()
             .putString("task_title", title)
             .build()
-        WorkManager.getInstance(requireContext()).cancelAllWorkByTag(title)
 
+        // ✅ Use stable tag per task
+        val tag = "reminder_$title"
+
+        // ✅ Cancel previous reminder for this task
+        WorkManager.getInstance(requireContext().applicationContext)
+            .cancelAllWorkByTag(tag)
+
+        // ✅ Schedule with tag
         val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
             .setInitialDelay(delay, TimeUnit.MILLISECONDS)
             .setInputData(data)
+            .addTag(tag) // ✅ Tag now actually added
             .build()
 
-        WorkManager.getInstance(requireContext()).enqueue(reminderRequest)
+        WorkManager.getInstance(requireContext().applicationContext)
+            .enqueue(reminderRequest)
     }
-
-
 }

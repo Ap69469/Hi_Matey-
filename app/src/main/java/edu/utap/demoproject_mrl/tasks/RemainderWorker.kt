@@ -1,15 +1,23 @@
 package edu.utap.demoproject_mrl.tasks
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.work.Worker
 import androidx.work.WorkerParameters
+import edu.utap.demoproject_mrl.MainActivity
 import edu.utap.demoproject_mrl.R
 
 class ReminderWorker(
-    private val context: Context,
+    context: Context,
     workerParams: WorkerParameters
 ) : Worker(context, workerParams) {
 
@@ -20,11 +28,20 @@ class ReminderWorker(
     }
 
     private fun showNotification(taskTitle: String) {
+        val appContext = applicationContext
         val channelId = "himatey_reminders"
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        // Create notification channel
+        // ✅ Permission guard for Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    appContext, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) return
+        }
+
+        // ✅ Create notification channel
+        val notificationManager =
+            appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val channel = NotificationChannel(
             channelId,
             "Hi Matey Reminders",
@@ -34,15 +51,29 @@ class ReminderWorker(
         }
         notificationManager.createNotificationChannel(channel)
 
-        // Build notification
-        val notification = NotificationCompat.Builder(context, channelId)
+        // ✅ PendingIntent to open app on tap
+        val intent = Intent(appContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            appContext, 0, intent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // ✅ Build notification with applicationContext
+        val notification = NotificationCompat.Builder(appContext, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Hi Matey Reminder 🔔")
             .setContentText("Time for: $taskTitle")
+            .setStyle(NotificationCompat.BigTextStyle()
+                .bigText("Time for: $taskTitle"))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .setContentIntent(pendingIntent) // ✅ Opens app on tap
             .build()
 
-        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+        // ✅ Use NotificationManagerCompat + stable ID per task
+        NotificationManagerCompat.from(appContext)
+            .notify(taskTitle.hashCode(), notification)
     }
 }

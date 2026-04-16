@@ -1,18 +1,16 @@
-
 package edu.utap.demoproject_mrl.photos
 
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.bumptech.glide.Glide
-import androidx.recyclerview.widget.RecyclerView
-import android.widget.ImageView
 import edu.utap.demoproject_mrl.R
 
 class PhotoFullscreenFragment : Fragment() {
@@ -25,12 +23,13 @@ class PhotoFullscreenFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val uriStrings = arguments?.getStringArray("photo_uris") ?: return
+        val uuids = arguments?.getStringArray("photo_uuids") ?: return
+        val userUid = arguments?.getString("user_uid") ?: return
         val startIndex = arguments?.getInt("start_index", 0) ?: 0
-        val uris = uriStrings.map { Uri.parse(it) }
 
+        val storage = PhotoStorage()
         val viewPager = view.findViewById<ViewPager2>(R.id.viewPagerFullscreen)
-        viewPager.adapter = FullscreenPagerAdapter(uris)
+        viewPager.adapter = FullscreenPagerAdapter(uuids.toList(), userUid, storage)
         viewPager.setCurrentItem(startIndex, false)
 
         view.findViewById<ImageButton>(R.id.btnCloseFullscreen).setOnClickListener {
@@ -40,7 +39,9 @@ class PhotoFullscreenFragment : Fragment() {
 }
 
 class FullscreenPagerAdapter(
-    private val uris: List<Uri>
+    private val uuids: List<String>,
+    private val userUid: String,
+    private val storage: PhotoStorage
 ) : RecyclerView.Adapter<FullscreenPagerAdapter.FullscreenViewHolder>() {
 
     inner class FullscreenViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -54,11 +55,13 @@ class FullscreenPagerAdapter(
     }
 
     override fun onBindViewHolder(holder: FullscreenViewHolder, position: Int) {
+        val storageRef = storage.uuid2StorageReference(userUid, uuids[position])
         Glide.with(holder.ivFullscreen.context)
-            .load(uris[position])
+            .load(storageRef)
             .fitCenter()
+            .placeholder(android.R.drawable.ic_menu_gallery)
             .into(holder.ivFullscreen)
     }
 
-    override fun getItemCount() = uris.size
+    override fun getItemCount() = uuids.size
 }

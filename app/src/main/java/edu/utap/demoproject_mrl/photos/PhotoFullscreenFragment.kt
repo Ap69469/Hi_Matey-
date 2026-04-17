@@ -56,11 +56,14 @@ class FullscreenPagerAdapter(
 
     override fun onBindViewHolder(holder: FullscreenViewHolder, position: Int) {
         val storageRef = storage.uuid2StorageReference(userUid, uuids[position])
-        Glide.with(holder.ivFullscreen.context)
-            .load(storageRef)
-            .fitCenter()
-            .placeholder(android.R.drawable.ic_menu_gallery)
-            .into(holder.ivFullscreen)
+        storageRef.downloadUrl.addOnSuccessListener { uri ->
+            Glide.with(holder.ivFullscreen.context)
+                .load(uri.toString())
+                .fitCenter()
+                .placeholder(android.R.drawable.ic_menu_gallery)
+                .error(android.R.drawable.ic_menu_report_image)
+                .into(holder.ivFullscreen)
+        }
     }
 
     override fun getItemCount() = uuids.size

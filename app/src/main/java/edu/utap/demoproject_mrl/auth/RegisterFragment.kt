@@ -64,6 +64,7 @@ class RegisterFragment : Fragment() {
 
                     // Save user profile to Firestore
                     val userProfile = hashMapOf(
+                        "uid" to uid,
                         "email" to email,
                         "createdAt" to System.currentTimeMillis()
                     )

@@ -45,8 +45,15 @@ class SharedTaskAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val task = tasks[position]
 
+        val currentUserEmail = com.google.firebase.auth.FirebaseAuth
+            .getInstance().currentUser?.email ?: ""
+
         holder.tvTitle.text = task.title
-        holder.tvAssigned.text = "→ ${task.assignedTo}"
+
+        // ✅ Show "You" or "Partner" instead of raw email
+        holder.tvAssigned.text = if (task.assignedTo == currentUserEmail) "→ You"
+        else "→ Partner"
+        holder.tvAssigned.visibility = View.VISIBLE
 
         if (task.reminderTime.isNotEmpty()) {
             holder.tvReminderTime.text = "⏰ ${task.reminderTime}"
@@ -67,7 +74,8 @@ class SharedTaskAdapter(
         if (task.isCompleted && task.completedAt > 0L) {
             val time = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
                 .format(java.util.Date(task.completedAt))
-            val name = task.assignedTo.substringBefore("@")
+            val name = if (task.assignedTo == currentUserEmail) "You"
+            else task.assignedTo.substringBefore("@")
             holder.tvCompletedAt.text = "✓ $name finished at $time"
             holder.tvCompletedAt.visibility = View.VISIBLE
         } else {

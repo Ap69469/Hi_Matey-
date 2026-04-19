@@ -19,6 +19,14 @@ interface TaskDao {
     @Delete
     suspend fun deleteTask(task: Task)
 
-    @Query("UPDATE tasks SET isCompleted = 0 WHERE lastCompletedDate != :today")
-    suspend fun resetTasksForNewDay(today: String)
+    @Query("""
+        UPDATE tasks 
+        SET isCompleted = 0,
+            streak = CASE 
+                WHEN lastCompletedDate = :yesterday THEN streak
+                ELSE 0
+            END
+        WHERE lastCompletedDate != :today
+    """)
+    suspend fun resetTasksForNewDay(today: String, yesterday: String)
 }

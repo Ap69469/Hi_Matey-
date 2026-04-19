@@ -57,7 +57,10 @@ class SharedViewModel(application: Application) : AndroidViewModel(application) 
 
     fun resetTasksIfNewDay() {
         viewModelScope.launch {
-            taskDao.resetTasksForNewDay(getTodayDate())
+            taskDao.resetTasksForNewDay(
+                getTodayDate(),
+                    yesterday = getYesterdayDate()
+            )
         }
     }
 

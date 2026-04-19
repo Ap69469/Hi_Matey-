@@ -8,7 +8,6 @@
     android:gravity="center_vertical"
     android:background="?android:attr/selectableItemBackground">
 
-
     <CheckBox
         android:id="@+id/cbSharedTask"
         android:layout_width="wrap_content"
@@ -33,14 +32,6 @@
             android:layout_height="wrap_content"
             android:textSize="12sp"
             android:textColor="#888888"/>
-        <TextView
-            android:id="@+id/tvSharedReminderTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="11sp"
-            android:textColor="#6200EE"
-            android:visibility="gone"/>
-
 
         <TextView
             android:id="@+id/tvCompletedAt"
@@ -52,14 +43,7 @@
             android:visibility="gone"/>
 
     </LinearLayout>
-    <Button
-        android:id="@+id/btnSharedReminder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="⏰"
-        android:textSize="16sp"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:layout_marginEnd="4dp"/>
+
     <ImageButton
         android:id="@+id/btnDeleteShared"
         android:layout_width="wrap_content"

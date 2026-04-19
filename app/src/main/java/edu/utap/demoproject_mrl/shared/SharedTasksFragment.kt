@@ -22,19 +22,12 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.work.Data
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import edu.utap.demoproject_mrl.MainActivity
 import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.model.SharedTask
-import edu.utap.demoproject_mrl.tasks.ReminderWorker
-import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
 class SharedTasksFragment : Fragment() {
 
@@ -61,16 +54,7 @@ class SharedTasksFragment : Fragment() {
 
         adapter = SharedTaskAdapter(
             onToggle = { task -> toggleSharedTask(task) },
-            onDelete = { task -> deleteSharedTask(task) },
-            onSetReminder = { task, hour, minute ->
-                val reminderTime = String.format("%02d:%02d", hour, minute)
-                db.collection("sharedTasks").document(task.id)
-                    .update("reminderTime", reminderTime)
-                scheduleSharedReminder(task.id, task.title, hour, minute)
-                Toast.makeText(requireContext(),
-                    "Reminder set for ${task.title} at $reminderTime ⏰",
-                    Toast.LENGTH_SHORT).show()
-            }
+            onDelete = { task -> deleteSharedTask(task) }
         )
 
         view.findViewById<RecyclerView>(R.id.rvSharedTasks).apply {
@@ -155,7 +139,6 @@ class SharedTasksFragment : Fragment() {
                         tasks.forEach { newTask ->
                             val oldTask = previousTasks.find { it.id == newTask.id }
 
-                            // ✅ Notify when partner completes a task
                             if (newTask.isCompleted && oldTask?.isCompleted == false) {
                                 showTaskClaimedNotification(
                                     newTask.assignedTo,
@@ -164,7 +147,6 @@ class SharedTasksFragment : Fragment() {
                                 )
                             }
 
-                            // ✅ Notify when a NEW task is created by the other person
                             if (oldTask == null && newTask.createdBy != currentEmail) {
                                 showNewTaskNotification(
                                     newTask.createdBy,
@@ -180,36 +162,6 @@ class SharedTasksFragment : Fragment() {
 
                 adapter.submitList(tasks)
             }
-    }
-
-    private fun scheduleSharedReminder(taskId: String, title: String, hour: Int, minute: Int) {
-        val now = Calendar.getInstance()
-        val reminderTime = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, hour)
-            set(Calendar.MINUTE, minute)
-            set(Calendar.SECOND, 0)
-        }
-
-        if (reminderTime.before(now)) {
-            reminderTime.add(Calendar.DAY_OF_MONTH, 1)
-        }
-
-        val delay = reminderTime.timeInMillis - now.timeInMillis
-
-        val data = Data.Builder()
-            .putString("task_title", title)
-            .build()
-
-        val workName = "shared_reminder_$taskId"
-
-        val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
-            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-            .setInputData(data)
-            .addTag(workName)
-            .build()
-
-        WorkManager.getInstance(requireContext().applicationContext)
-            .enqueueUniqueWork(workName, ExistingWorkPolicy.REPLACE, reminderRequest)
     }
 
     private fun toggleSharedTask(task: SharedTask) {
@@ -246,91 +198,73 @@ class SharedTasksFragment : Fragment() {
     }
 
     private fun showTaskClaimedNotification(
-        userEmail: String,
-        taskTitle: String,
-        taskId: String
+        userEmail: String, taskTitle: String, taskId: String
     ) {
         val appContext = requireContext().applicationContext
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     appContext, Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) return
         }
-
-        val intent = Intent(appContext, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
         val pendingIntent = PendingIntent.getActivity(
-            appContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
+            appContext, 0,
+            Intent(appContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }, PendingIntent.FLAG_IMMUTABLE
         )
-
         val name = userEmail.substringBefore("@")
-
-        val notification = NotificationCompat.Builder(appContext, "himatey_shared")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Hi Matey Update 🤝")
-            .setContentText("$name finished: $taskTitle")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("$name finished: \"$taskTitle\""))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        NotificationManagerCompat.from(appContext)
-            .notify(taskId.hashCode(), notification)
+        NotificationManagerCompat.from(appContext).notify(
+            taskId.hashCode(),
+            NotificationCompat.Builder(appContext, "himatey_shared")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle("Hi Matey Update 🤝")
+                .setContentText("$name finished: $taskTitle")
+                .setStyle(NotificationCompat.BigTextStyle().bigText("$name finished: \"$taskTitle\""))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+        )
     }
 
-    // ✅ New function — notifies partner when a task is created
     private fun showNewTaskNotification(
-        createdBy: String,
-        taskTitle: String,
-        taskId: String
+        createdBy: String, taskTitle: String, taskId: String
     ) {
         val appContext = requireContext().applicationContext
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
                     appContext, Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) return
         }
-
-        val intent = Intent(appContext, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-        }
         val pendingIntent = PendingIntent.getActivity(
-            appContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
+            appContext, 0,
+            Intent(appContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }, PendingIntent.FLAG_IMMUTABLE
         )
-
         val name = createdBy.substringBefore("@")
-
-        val notification = NotificationCompat.Builder(appContext, "himatey_shared")
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("New Shared Task 📋")
-            .setContentText("$name added: $taskTitle")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("$name just added a new task: \"$taskTitle\""))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
-            .build()
-
-        NotificationManagerCompat.from(appContext)
-            .notify(("new_$taskId").hashCode(), notification)
+        NotificationManagerCompat.from(appContext).notify(
+            ("new_$taskId").hashCode(),
+            NotificationCompat.Builder(appContext, "himatey_shared")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle("New Shared Task 📋")
+                .setContentText("$name added: $taskTitle")
+                .setStyle(NotificationCompat.BigTextStyle().bigText("$name just added a new task: \"$taskTitle\""))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+        )
     }
 
     private fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            "himatey_shared",
-            "Shared Task Updates",
-            NotificationManager.IMPORTANCE_HIGH
-        )
         val manager = requireContext().applicationContext
             .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(channel)
+        manager.createNotificationChannel(
+            NotificationChannel("himatey_shared", "Shared Task Updates", NotificationManager.IMPORTANCE_HIGH)
+        )
     }
 
     private fun deleteSharedTask(task: SharedTask) {

@@ -1,6 +1,11 @@
 package edu.utap.demoproject_mrl.tasks
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -13,13 +18,9 @@ import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.work.Data
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
 import edu.utap.demoproject_mrl.R
 import edu.utap.demoproject_mrl.viewmodel.SharedViewModel
 import java.util.Calendar
-import java.util.concurrent.TimeUnit
 
 class TasksFragment : Fragment() {
 
@@ -37,18 +38,23 @@ class TasksFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewModel.resetTasksIfNewDay()
+        // REMOVED: viewModel.resetTasksIfNewDay() — MainActivity handles this now
 
         adapter = TaskAdapter(
             onToggle = { task -> viewModel.toggleTask(task) },
-            onDelete = { task -> viewModel.deleteTask(task) },
+            onDelete = { task ->
+                cancelReminder(task.title)
+                viewModel.deleteTask(task)
+            },
             onSetReminder = { task, hour, minute ->
                 val reminderTime = String.format("%02d:%02d", hour, minute)
                 viewModel.updateTaskReminder(task, reminderTime)
                 scheduleReminder(task.title, hour, minute)
-                Toast.makeText(requireContext(),
+                Toast.makeText(
+                    requireContext(),
                     "Reminder set for ${task.title} at $reminderTime ⏰",
-                    Toast.LENGTH_SHORT).show()
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         )
 
@@ -122,28 +128,68 @@ class TasksFragment : Fragment() {
             set(Calendar.HOUR_OF_DAY, hour)
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
 
         if (reminderTime.before(now)) {
             reminderTime.add(Calendar.DAY_OF_MONTH, 1)
         }
 
-        val delay = reminderTime.timeInMillis - now.timeInMillis
+        val intent = Intent(requireContext(), ReminderReceiver::class.java).apply {
+            putExtra("task_title", title)
+        }
 
-        val data = Data.Builder()
-            .putString("task_title", title)
-            .build()
+        val requestCode = title.trim().lowercase().hashCode()
+        val pendingIntent = PendingIntent.getBroadcast(
+            requireContext(), requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
-        val workName = "reminder_${title.trim().lowercase().hashCode()}"
+        val alarmManager = requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    reminderTime.timeInMillis,
+                    pendingIntent
+                )
+            } else {
+                // Permission not granted — open system settings so user can allow it
+                Toast.makeText(
+                    requireContext(),
+                    "Please allow exact alarms in Settings for accurate reminders",
+                    Toast.LENGTH_LONG
+                ).show()
+                val settingsIntent = Intent(
+                    android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                )
+                startActivity(settingsIntent)
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                reminderTime.timeInMillis,
+                pendingIntent
+            )
+        } else {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                reminderTime.timeInMillis,
+                pendingIntent
+            )
+        }
+    }
 
-        val reminderRequest = OneTimeWorkRequestBuilder<ReminderWorker>()
-            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-            .setInputData(data)
-            .addTag(workName)
-            .build()
-
-        WorkManager.getInstance(requireContext().applicationContext)
-            .enqueue(reminderRequest)
+    private fun cancelReminder(title: String) {
+        val intent = Intent(requireContext(), ReminderReceiver::class.java)
+        val requestCode = title.trim().lowercase().hashCode()
+        val pendingIntent = PendingIntent.getBroadcast(
+            requireContext(), requestCode, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarmManager =
+            requireContext().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(pendingIntent)
     }
 }

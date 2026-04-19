@@ -227,15 +227,34 @@ class FitnessFragment : Fragment() {
         }
     }
 
+
+
+
+    private fun launchCamera() {
+        val photoFile = createImageFile()
+        currentPhotoFile = photoFile
+        currentUUID = UUID.randomUUID().toString() // ✅ Generate UUID
+
+        photoUri = FileProvider.getUriForFile(
+            requireContext(),
+            "${requireContext().packageName}.fileprovider",
+            photoFile
+        )
+        takePicture.launch(photoUri)
+    }
     private fun loadWeeklyCalendar() {
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val workoutDates = AppDatabase.getDatabase(requireContext())
                 .workoutDao().getAllWorkoutDates().toSet()
 
-            val calendar = Calendar.getInstance()
             val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
             val dayNames = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-            calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+
+            // Locale-safe Monday calculation
+            val calendar = Calendar.getInstance()
+            val dayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+            val daysFromMonday = (dayOfWeek - Calendar.MONDAY + 7) % 7
+            calendar.add(Calendar.DAY_OF_MONTH, -daysFromMonday)
 
             val weekDisplay = StringBuilder("This Week:\n")
             for (i in 0..6) {
@@ -251,21 +270,6 @@ class FitnessFragment : Fragment() {
             }
         }
     }
-
-
-    private fun launchCamera() {
-        val photoFile = createImageFile()
-        currentPhotoFile = photoFile
-        currentUUID = UUID.randomUUID().toString() // ✅ Generate UUID
-
-        photoUri = FileProvider.getUriForFile(
-            requireContext(),
-            "${requireContext().packageName}.fileprovider",
-            photoFile
-        )
-        takePicture.launch(photoUri)
-    }
-
     private fun createImageFile(): File {
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = requireContext().getExternalFilesDir(null)

@@ -7,12 +7,11 @@ data class SharedTask(
     val title: String = "",
     val assignedTo: String = "",
     val assignedToUid: String = "",
-    val reminderTime: String = "",
     val createdBy: String = "",
     val partnershipId: String = "",
+    @get:PropertyName("isCompleted") @set:PropertyName("isCompleted")
+    var isCompleted: Boolean = false,
     val completedAt: Long = 0L,
-
-    @get:PropertyName("isCompleted")
-    @set:PropertyName("isCompleted")
-    var isCompleted: Boolean = false
+    val completedBy: String = "",
+    val reminderTime: String = ""
 )

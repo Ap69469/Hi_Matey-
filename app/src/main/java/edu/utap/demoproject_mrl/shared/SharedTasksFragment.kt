@@ -109,9 +109,11 @@ class SharedTasksFragment : Fragment() {
             .get()
             .addOnSuccessListener { docs ->
                 if (docs.isEmpty) {
-                    Toast.makeText(requireContext(),
+                    Toast.makeText(
+                        requireContext(),
                         "No partner yet. Invite one in Settings!",
-                        Toast.LENGTH_LONG).show()
+                        Toast.LENGTH_LONG
+                    ).show()
                     return@addOnSuccessListener
                 }
                 partnershipId = docs.documents[0].id
@@ -140,11 +142,14 @@ class SharedTasksFragment : Fragment() {
                             val oldTask = previousTasks.find { it.id == newTask.id }
 
                             if (newTask.isCompleted && oldTask?.isCompleted == false) {
-                                showTaskClaimedNotification(
-                                    newTask.assignedTo,
-                                    newTask.title,
-                                    newTask.id
-                                )
+                                // Only notify if the OTHER user completed it
+                                if (newTask.completedBy != currentEmail) {
+                                    showTaskClaimedNotification(
+                                        newTask.completedBy,
+                                        newTask.title,
+                                        newTask.id
+                                    )
+                                }
                             }
 
                             if (oldTask == null && newTask.createdBy != currentEmail) {
@@ -168,7 +173,8 @@ class SharedTasksFragment : Fragment() {
         val newStatus = !task.isCompleted
         val updates = mapOf(
             "isCompleted" to newStatus,
-            "completedAt" to if (newStatus) System.currentTimeMillis() else 0L
+            "completedAt" to if (newStatus) System.currentTimeMillis() else 0L,
+            "completedBy" to if (newStatus) auth.currentUser?.email ?: "" else ""
         )
         db.collection("sharedTasks").document(task.id).update(updates)
     }
@@ -198,7 +204,7 @@ class SharedTasksFragment : Fragment() {
     }
 
     private fun showTaskClaimedNotification(
-        userEmail: String, taskTitle: String, taskId: String
+        completedBy: String, taskTitle: String, taskId: String
     ) {
         val appContext = requireContext().applicationContext
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -213,14 +219,17 @@ class SharedTasksFragment : Fragment() {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             }, PendingIntent.FLAG_IMMUTABLE
         )
-        val name = userEmail.substringBefore("@")
+        val name = completedBy.substringBefore("@")
         NotificationManagerCompat.from(appContext).notify(
             taskId.hashCode(),
             NotificationCompat.Builder(appContext, "himatey_shared")
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Hi Matey Update 🤝")
                 .setContentText("$name finished: $taskTitle")
-                .setStyle(NotificationCompat.BigTextStyle().bigText("$name finished: \"$taskTitle\""))
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText("$name finished: \"$taskTitle\"")
+                )
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
@@ -251,7 +260,10 @@ class SharedTasksFragment : Fragment() {
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("New Shared Task 📋")
                 .setContentText("$name added: $taskTitle")
-                .setStyle(NotificationCompat.BigTextStyle().bigText("$name just added a new task: \"$taskTitle\""))
+                .setStyle(
+                    NotificationCompat.BigTextStyle()
+                        .bigText("$name just added a new task: \"$taskTitle\"")
+                )
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
@@ -263,7 +275,11 @@ class SharedTasksFragment : Fragment() {
         val manager = requireContext().applicationContext
             .getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(
-            NotificationChannel("himatey_shared", "Shared Task Updates", NotificationManager.IMPORTANCE_HIGH)
+            NotificationChannel(
+                "himatey_shared",
+                "Shared Task Updates",
+                NotificationManager.IMPORTANCE_HIGH
+            )
         )
     }
 

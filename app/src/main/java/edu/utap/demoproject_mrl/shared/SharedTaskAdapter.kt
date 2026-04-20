@@ -61,8 +61,7 @@ class SharedTaskAdapter(
         if (task.isCompleted && task.completedAt > 0L) {
             val time = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
                 .format(java.util.Date(task.completedAt))
-            val name = if (task.assignedTo == currentUserEmail) "You"
-            else task.assignedTo.substringBefore("@")
+            val name = if (task.completedBy == currentUserEmail) "You" else "partner"
             holder.tvCompletedAt.text = "✓ $name finished at $time"
             holder.tvCompletedAt.visibility = View.VISIBLE
         } else {

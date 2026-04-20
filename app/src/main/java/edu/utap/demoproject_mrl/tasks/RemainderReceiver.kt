@@ -1,13 +1,17 @@
 package edu.utap.demoproject_mrl.tasks
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import edu.utap.demoproject_mrl.MainActivity
 import edu.utap.demoproject_mrl.R
 
@@ -16,9 +20,21 @@ class ReminderReceiver : BroadcastReceiver() {
         val taskTitle = intent.getStringExtra("task_title") ?: "Task Reminder"
         val channelId = "himatey_reminders"
 
+        // ← THIS is what was missing — check POST_NOTIFICATIONS before notify()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    context, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) return
+        }
+
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
-            NotificationChannel(channelId, "Hi Matey Reminders", NotificationManager.IMPORTANCE_HIGH)
+            NotificationChannel(
+                channelId,
+                "Hi Matey Reminders",
+                NotificationManager.IMPORTANCE_HIGH
+            )
         )
 
         val tapIntent = PendingIntent.getActivity(
